@@ -1,0 +1,54 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { writeClient } from '@/sanity.client'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const {
+      orderId, customerName, customerPhone, customerEmail,
+      items, subtotal, tax, total, specialRequests, placedAt,
+    } = body
+
+    if (!orderId || !customerName) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    }
+
+    if (!process.env.SANITY_API_WRITE_TOKEN) {
+      console.warn('[save-order] No write token — order not saved to Sanity')
+      return NextResponse.json({ success: true, skipped: true })
+    }
+
+    const doc = {
+      _type:           'order',
+      _id:             `order-${orderId}`,
+      orderId,
+      status:          'new',
+      customerName,
+      customerPhone:   customerPhone ?? '',
+      customerEmail:   customerEmail ?? '',
+      orderType:       'pickup',
+      items:           (items ?? []).map((item: any, i: number) => ({
+        _type:    'orderItem',
+        _key:     `item-${i}`,
+        name:     item.name,
+        quantity: item.quantity,
+        price:    item.price,
+      })),
+      subtotal: Number(subtotal),
+      tax:      Number(tax),
+      total:    Number(total),
+      specialRequests: specialRequests ?? '',
+      placedAt:  placedAt ?? new Date().toISOString(),
+      notes:    '',
+    }
+
+    await writeClient.createOrReplace(doc)
+    console.log(`[save-order] Order ${orderId} saved to Sanity`)
+
+    return NextResponse.json({ success: true, orderId })
+
+  } catch (err) {
+    console.error('[save-order] Error saving to Sanity:', err)
+    return NextResponse.json({ success: true, warning: 'Save failed' })
+  }
+}
