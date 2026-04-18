@@ -1,6 +1,7 @@
 import { Cormorant_Garamond, Raleway } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import { fetchRestaurantInfo } from '@/lib/fetchData'
+import CustomCursor from '@/components/CustomCursor'
 import CartProviderWrapper from '@/components/CartProviderWrapper'
 import { ModalProvider } from '@/context/ModalContext'
 import CartDrawer from '@/components/CartDrawer'
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`} data-scroll-behavior="smooth">
       <body>
+        <CustomCursor />
         <NavigationProgressBar />
         <CartProviderWrapper openingHours={info?.openingHours ?? []}>
           <ModalProvider>

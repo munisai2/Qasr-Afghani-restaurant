@@ -4,7 +4,7 @@ export const restaurantInfoQuery = `
     name, tagline, logo, heroImage,
     aboutTitle, aboutBody, aboutImage, openingYear,
     galleryImages[] { 
-      asset->{ _id, url }, hotspot, crop, caption 
+      _type, caption, url, asset->{ _id, url }, hotspot, crop 
     },
     googleMapsEmbed,
     openingHours,

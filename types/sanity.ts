@@ -11,9 +11,11 @@ export interface OpeningHours {
 }
 
 export interface GalleryImage {
-  asset: SanityImage['asset']
+  _type?: 'image' | 'videoEmbed'
+  asset?: SanityImage['asset']
   hotspot?: SanityImage['hotspot']
   caption?: string
+  url?: string
 }
 
 export interface RestaurantInfo {
@@ -82,3 +84,4 @@ export interface Testimonial {
   rating: number
   isHighlighted: boolean
 }
+

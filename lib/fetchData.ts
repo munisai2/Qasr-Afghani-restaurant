@@ -10,17 +10,18 @@ import {
 import type { RestaurantInfo, MenuItem, TeamMember, CateringPlan, Testimonial } from '@/types/sanity'
 
 /** Preferred display order for menu categories */
-const CATEGORY_ORDER = ['appetizers', 'kebabs', 'mains', 'rice', 'sides', 'desserts', 'beverages']
+const CATEGORY_ORDER = [
+  'lamb', 'chicken', 'family', 'wings', 'gyro', 'appetizers',
+]
 
 /** Human-readable labels for each menu category */
 export const CATEGORY_LABELS: Record<string, string> = {
-  appetizers: 'Appetizers',
-  kebabs:     'Royal Kebabs',
-  mains:      'Palace Mains',
-  rice:       'Rice Dishes',
-  sides:      'Bread & Sides',
-  desserts:   'Desserts',
-  beverages:  'Beverages',
+  lamb:       'Lamb Specials',
+  chicken:    'Chicken Specials',
+  family:     'Family Packages',
+  wings:      'Buffalo Wild Wings',
+  gyro:       'Gyro Specials',
+  appetizers: 'Appetizers & Drinks',
 }
 
 export async function fetchRestaurantInfo(): Promise<RestaurantInfo | null> {
@@ -91,15 +92,13 @@ export async function fetchMenuByCategory(): Promise<Record<string, MenuItem[]>>
     if (!grouped[cat]) grouped[cat] = []
     grouped[cat].push(item)
   }
-  const sortedKeys = Object.keys(grouped).sort((a, b) => {
-    const idxA = CATEGORY_ORDER.indexOf(a)
-    const idxB = CATEGORY_ORDER.indexOf(b)
-    if (idxA !== -1 && idxB !== -1) return idxA - idxB
-    if (idxA !== -1) return -1
-    if (idxB !== -1) return 1
-    return a.localeCompare(b)
-  })
   const sorted: Record<string, MenuItem[]> = {}
-  for (const key of sortedKeys) sorted[key] = grouped[key]
+  CATEGORY_ORDER.forEach(cat => {
+    if (grouped[cat]) sorted[cat] = grouped[cat]
+  })
+  // Append any unknown categories at end
+  Object.keys(grouped).forEach(cat => {
+    if (!sorted[cat]) sorted[cat] = grouped[cat]
+  })
   return sorted
 }

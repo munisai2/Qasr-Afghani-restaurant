@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import { CATEGORY_LABELS } from '@/lib/fetchData'
 import MenuItemCard from './MenuItemCard'
 import type { MenuItem } from '@/types/sanity'
@@ -9,10 +10,12 @@ import type { MenuItem } from '@/types/sanity'
 interface RoyalMenuSectionProps {
   menuByCategory: Record<string, MenuItem[]>
   restaurantName: string
+  showFullMenu?: boolean
 }
 
-export default function RoyalMenuSection({ menuByCategory, restaurantName }: RoyalMenuSectionProps) {
-  const categories = Object.keys(menuByCategory)
+export default function RoyalMenuSection({ menuByCategory, restaurantName, showFullMenu = false }: RoyalMenuSectionProps) {
+  const allCategories = Object.keys(menuByCategory)
+  const categories = showFullMenu ? allCategories : allCategories.slice(0, 2)
   const [activeCategory, setActiveCategory] = useState<string>(categories[0] ?? '')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -116,6 +119,31 @@ export default function RoyalMenuSection({ menuByCategory, restaurantName }: Roy
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {!showFullMenu && (
+        <div className="text-center py-16 border-t border-palace-stone">
+          <p className="font-body text-xs text-white/30 tracking-wide mb-6">
+            Showing Lamb & Chicken Specials
+          </p>
+          <Link
+            href="/menu"
+            data-cursor-label="Menu"
+            className="inline-flex items-center gap-3
+                       border border-gold/40 text-gold
+                       font-body text-xs tracking-[0.25em] uppercase
+                       px-10 py-4 rounded-none
+                       hover:bg-gold hover:text-palace-black
+                       transition-all duration-300"
+          >
+            View Full Royal Menu
+            <span className="text-base">→</span>
+          </Link>
+          <p className="font-body text-[10px] text-white/20 mt-4 tracking-wide">
+            {Object.values(menuByCategory).flat().length} dishes across{' '}
+            {Object.keys(menuByCategory).length} categories
+          </p>
+        </div>
+      )}
     </section>
   )
 }

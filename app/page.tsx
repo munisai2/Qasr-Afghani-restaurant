@@ -74,6 +74,10 @@ export default async function Page() {
           restaurantName={info.name}
         />
 
+        {info.galleryImages?.length > 0 && (
+          <GallerySection images={info.galleryImages} />
+        )}
+
         <TestimonialsSection testimonials={testimonials} />
 
         <AboutSection
@@ -83,10 +87,6 @@ export default async function Page() {
           team={team}
           openingYear={info.openingYear}
         />
-
-        {info.galleryImages?.length > 0 && (
-          <GallerySection images={info.galleryImages} />
-        )}
 
         <ContactSection
           address={info.address}

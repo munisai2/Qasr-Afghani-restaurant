@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion'
 import Image from 'next/image'
 import { optimizedImage } from '@/sanity.client'
@@ -14,7 +15,7 @@ interface SiteNavProps {
 }
 
 const NAV_LINKS = [
-  { label: 'Menu',     href: '#menu' },
+  { label: 'Menu',     href: '/menu' },
   { label: 'About',    href: '#about' },
   { label: 'Gallery',  href: '#gallery' },
   { label: 'Contact',  href: '#contact' },
@@ -22,10 +23,11 @@ const NAV_LINKS = [
 ]
 
 export default function SiteNav({ logo, restaurantName, reservationUrl }: SiteNavProps) {
+  const pathname = usePathname()
   const { scrollY } = useScroll()
   const [scrolled, setScrolled] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState('')
+  const [activeHash, setActiveHash] = useState('')
 
   useMotionValueEvent(scrollY, 'change', (latest) => { setScrolled(latest >= 60) })
 
@@ -36,7 +38,7 @@ export default function SiteNav({ logo, restaurantName, reservationUrl }: SiteNa
       const el = document.getElementById(id)
       if (!el) return
       const observer = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveSection(id) },
+        ([entry]) => { if (entry.isIntersecting) setActiveHash(id) },
         { rootMargin: '-40% 0px -40% 0px', threshold: 0 }
       )
       observer.observe(el)
@@ -63,7 +65,8 @@ export default function SiteNav({ logo, restaurantName, reservationUrl }: SiteNa
           <div className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link, i) => {
               const isHash = link.href.startsWith('#')
-              const isActive = isHash && activeSection === link.href.slice(1)
+              const isInternalPage = link.href.startsWith('/') && !link.href.includes('#')
+              const isActive = (isHash && activeHash === link.href.slice(1)) || (isInternalPage && pathname === link.href)
               return (
                 <span key={link.href} className="flex items-center">
                   <a href={isHash ? `/${link.href}` : link.href} className={`font-body text-xs tracking-[0.2em] uppercase px-3 py-2 transition-colors duration-300 ${isActive ? 'text-gold' : 'text-white/50 hover:text-gold'}`}>{link.label}</a>

@@ -90,12 +90,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   100% { background-position: -200% center; }
 }
 
-/* Bespoke gold-dot crosshair cursor — desktop only */
-@media (hover: hover) and (pointer: fine) {
-  * {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Ccircle cx='6' cy='6' r='1.5' fill='%23C9A84C' opacity='0.7'/%3E%3Ccircle cx='6' cy='6' r='5' fill='none' stroke='%23C9A84C' stroke-width='0.5' opacity='0.3'/%3E%3C/svg%3E") 6 6, auto;
+/* Hide default cursor ONLY on devices with a real mouse */
+@media (pointer: fine) {
+  html, body, * {
+    cursor: none !important;
   }
-  a, button, [role="button"] {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Ccircle cx='6' cy='6' r='3' fill='%23C9A84C' opacity='0.8'/%3E%3C/svg%3E") 6 6, pointer;
+  
+  /* Re-enable cursor on touch areas just in case */
+  input, textarea, select {
+    cursor: none !important;
+  }
+}
+
+/* On touch devices — keep normal cursor behavior */
+@media (pointer: coarse) {
+  html, body {
+    cursor: auto;
   }
 }

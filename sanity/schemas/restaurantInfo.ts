@@ -54,11 +54,13 @@ export default defineType({
     }),
     defineField({
       name: 'galleryImages',
-      title: 'Gallery Photos (up to 12)',
+      title: 'Gallery Media (Photos & Videos)',
       type: 'array',
       of: [
         {
           type: 'image',
+          name: 'image',
+          title: '📷 Photo',
           options: { hotspot: true },
           fields: [
             {
@@ -68,8 +70,29 @@ export default defineType({
             },
           ],
         },
+        {
+          type: 'object',
+          name: 'videoEmbed',
+          title: '🎬 Video',
+          fields: [
+            {
+              name: 'url',
+              title: 'Video URL (YouTube or MP4)',
+              type: 'url',
+            },
+            {
+              name: 'caption',
+              title: 'Caption',
+              type: 'string',
+            },
+          ],
+          preview: {
+            select: { title: 'caption', subtitle: 'url' },
+            prepare({ title, subtitle }) { return { title: title || 'Video', subtitle: '🎬 ' + subtitle } }
+          }
+        }
       ],
-      validation: (rule) => rule.max(12),
+      validation: (rule) => rule.max(15),
     }),
     defineField({
       name: 'googleMapsEmbed',

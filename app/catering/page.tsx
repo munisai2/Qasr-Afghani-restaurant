@@ -28,7 +28,7 @@ export default async function CateringPage() {
       <main>
         <CateringHero info={info} />
         <CateringPlansSection plans={plans} />
-        <CateringQuoteForm planTitles={plans.map(p => p.title)} />
+        <CateringQuoteForm planTitles={Array.from(new Set(plans.map(p => p.title)))} />
       </main>
 
       <SiteFooter
