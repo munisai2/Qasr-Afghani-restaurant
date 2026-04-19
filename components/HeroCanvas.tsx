@@ -10,9 +10,6 @@ export default function HeroCanvas() {
     const mount = mountRef.current
     if (!mount) return
 
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (prefersReduced) return
-
     const isMobile = window.innerWidth < 768
 
     // ── SCENE SETUP ──
