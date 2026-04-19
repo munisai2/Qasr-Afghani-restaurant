@@ -5,6 +5,28 @@ import Image from 'next/image'
 import { PortableText } from '@portabletext/react'
 import { optimizedImage } from '@/sanity.client'
 import type { SanityImage, TeamMember } from '@/types/sanity'
+import React, { useRef } from 'react'
+import { useParallax } from '@/hooks/useParallax'
+
+function AnimatedText({ text, className = '' }: { text: string, className?: string }) {
+  const words = text.split(' ')
+  return (
+    <span className={className}>
+      {words.map((word, i) => (
+        <motion.span
+          key={i}
+          className="inline-block mr-[0.25em]"
+          initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.3, delay: i * 0.04 }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </span>
+  )
+}
 
 interface AboutSectionProps {
   title: string
@@ -30,7 +52,27 @@ const portableTextComponents = {
   },
 }
 
+const firstBlockComponents = {
+  ...portableTextComponents,
+  block: {
+    ...portableTextComponents.block,
+    normal: ({ children }: any) => (
+      <p className="font-body text-base text-white/55 leading-[1.9]">
+        {React.Children.map(children, (child) => {
+          if (typeof child === 'string') {
+            return <AnimatedText text={child} />
+          }
+          return child
+        })}
+      </p>
+    )
+  }
+}
+
 export default function AboutSection({ title, body, image, team, openingYear }: AboutSectionProps) {
+  const containerRef = useRef<HTMLElement>(null)
+  const yParallax = useParallax(containerRef, 0.6, 200)
+
   // Apply shimmer to the last word of the title
   const titleWords = (title || 'A Palace of Flavors').split(' ')
   const lastWord = titleWords.pop()
@@ -43,9 +85,16 @@ export default function AboutSection({ title, body, image, team, openingYear }: 
   ]
 
   return (
-    <section id="about" className="bg-palace-charcoal border-t border-palace-stone py-24 md:py-36 px-6 md:px-16 lg:px-24">
+    <section id="about" ref={containerRef} className="relative bg-palace-charcoal border-t border-palace-stone py-24 md:py-36 px-6 md:px-16 lg:px-24 overflow-hidden">
+      {/* Background Parallax */}
+      <motion.div 
+        className="absolute left-[-5%] top-[20%] text-[400px] font-display text-palace-smoke/30 pointer-events-none z-0 leading-none"
+        style={{ y: yParallax }}
+      >
+        A
+      </motion.div>
       {/* Two-column layout */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-16 items-start">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-16 items-start relative z-10">
         {/* LEFT — Text (60%) */}
         <div className="lg:col-span-3">
           <motion.p
@@ -65,8 +114,10 @@ export default function AboutSection({ title, body, image, team, openingYear }: 
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.1 }}
           >
-            {titleStart}{titleStart ? ' ' : ''}
-            <span className="text-shimmer">{lastWord}</span>
+            {titleStart ? <AnimatedText text={titleStart + ' '} /> : null}
+            <span className="text-shimmer">
+              <AnimatedText text={lastWord ?? ''} />
+            </span>
           </motion.h2>
 
           {body && body.length > 0 ? (
@@ -77,7 +128,8 @@ export default function AboutSection({ title, body, image, team, openingYear }: 
               viewport={{ once: true }}
               transition={{ duration: 0.7, delay: 0.2 }}
             >
-              <PortableText value={body} components={portableTextComponents} />
+              <PortableText value={[body[0]]} components={firstBlockComponents} />
+              {body.length > 1 && <PortableText value={body.slice(1)} components={portableTextComponents} />}
             </motion.div>
           ) : (
             <motion.div
@@ -88,10 +140,7 @@ export default function AboutSection({ title, body, image, team, openingYear }: 
             >
               <div className="font-body text-base text-white/55 leading-[1.9] space-y-5 max-w-xl">
                 <p>
-                  Qasr Afghan brings the rich culinary heritage of Afghanistan to
-                  the heart of Buffalo, New York. Our kitchen is built on recipes
-                  passed down through generations — slow-cooked meats, fragrant
-                  rice dishes, and hand-stretched bread fresh from the tandoor.
+                  <AnimatedText text="Qasr Afghan brings the rich culinary heritage of Afghanistan to the heart of Buffalo, New York. Our kitchen is built on recipes passed down through generations — slow-cooked meats, fragrant rice dishes, and hand-stretched bread fresh from the tandoor." />
                 </p>
                 <p>
                   Every dish tells a story. From the smoky char of our royal kebabs

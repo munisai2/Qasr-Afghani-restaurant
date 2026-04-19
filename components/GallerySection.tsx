@@ -26,7 +26,7 @@ export default function GallerySection({ images: items }: GallerySectionProps) {
   return (
     <section
       id="gallery"
-      className="relative bg-palace-charcoal py-24 border-t border-palace-stone"
+      className="relative bg-palace-charcoal py-24 border-t border-palace-stone overflow-hidden"
     >
       <div className="px-6 md:px-14 mb-12">
         <p className="font-body text-[9px] tracking-[0.45em] uppercase text-gold-muted mb-3">
@@ -101,6 +101,17 @@ interface GalleryCardProps {
 }
 
 function GalleryCard({ item, onClick }: GalleryCardProps) {
+  const [isShimmering, setIsShimmering] = useState(false)
+
+  const handleCardClick = () => {
+    if (isShimmering) return
+    setIsShimmering(true)
+    setTimeout(() => {
+      setIsShimmering(false)
+      onClick()
+    }, 400)
+  }
+
   const isVideo = item._type === 'videoEmbed' || item.url
   const cardWidth = isVideo 
     ? 'w-[85vw] sm:w-[60vw] md:w-[45vw] lg:w-[35vw]'
@@ -114,7 +125,7 @@ function GalleryCard({ item, onClick }: GalleryCardProps) {
         group cursor-pointer border border-palace-stone/30
         ${cardWidth}
       `}
-      onClick={onClick}
+      onClick={handleCardClick}
       data-cursor-label="View"
     >
       {(item._type === 'image' || !item._type) && item.asset ? (
@@ -123,6 +134,7 @@ function GalleryCard({ item, onClick }: GalleryCardProps) {
             src={optimizedImage(item, { width: 700, height: 900 })}
             alt={item.caption ?? 'Gallery image'}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             style={{ objectFit: 'cover' }}
             className="transition-transform duration-700 group-hover:scale-[1.05]"
           />
@@ -142,7 +154,7 @@ function GalleryCard({ item, onClick }: GalleryCardProps) {
           
           <div className="absolute inset-0 pointer-events-none transition-shadow duration-300 group-hover:shadow-[inset_0_0_0_1px_rgba(201,168,76,0.35)]" />
           
-          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
             <div className="w-8 h-8 flex items-center justify-center text-gold border border-gold/40 bg-palace-black/60 rounded-full backdrop-blur-sm">
               ↗
             </div>
@@ -187,6 +199,19 @@ function GalleryCard({ item, onClick }: GalleryCardProps) {
           </div>
         </>
       )}
+
+      <AnimatePresence>
+        {isShimmering && (
+          <motion.div
+            className="absolute inset-0 z-20 pointer-events-none"
+            style={{ background: 'linear-gradient(transparent 0%, rgba(201,168,76,0.15) 40%, rgba(255,107,26,0.1) 60%, transparent 100%)' }}
+            initial={{ opacity: 0, scaleY: 0.8 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -251,6 +276,7 @@ function GalleryLightbox({ items, startIndex, onClose }: LightboxProps) {
                 src={optimizedImage(item, { width: 1600, height: 1200 })}
                 alt={item.caption ?? 'Gallery Image'}
                 fill
+                sizes="100vw"
                 style={{ objectFit: 'contain' }}
                 priority
               />

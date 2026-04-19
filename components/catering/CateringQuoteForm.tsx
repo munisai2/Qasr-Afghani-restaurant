@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import TurnstileWidget from '@/components/TurnstileWidget'
 import { AnalyticsEvents } from '@/lib/analytics'
+import MagneticButton from '@/components/MagneticButton'
 
 interface QuoteFormData {
   firstName: string
@@ -147,11 +148,11 @@ export default function CateringQuoteForm({ planTitles }: CateringQuoteFormProps
               {/* Turnstile Widget */}
               <TurnstileWidget onSuccess={setTurnstileToken} />
 
-              <motion.button type="submit" disabled={submitDisabled}
-                className="bg-gold text-palace-black font-body font-bold text-sm tracking-[0.25em] uppercase py-5 w-full mt-8 rounded-none flex items-center justify-center gap-3 disabled:opacity-70"
-                whileHover={{ boxShadow: '0 0 40px rgba(201,168,76,0.5)' }} whileTap={{ scale: 0.98 }}>
+              <MagneticButton type="submit" disabled={submitDisabled}
+                className="bg-gold text-palace-black font-body font-bold text-sm tracking-[0.25em] uppercase py-5 w-full mt-8 rounded-none flex items-center justify-center gap-3 disabled:opacity-70 hover:shadow-[0_0_40px_rgba(201,168,76,0.5)] active:scale-[0.98] transition-all duration-300"
+              >
                 {isSubmitting ? <><span className="w-5 h-5 border-2 border-palace-black/30 border-t-palace-black rounded-full animate-spin" /> Sending to the Palace...</> : 'Send Request  ✦'}
-              </motion.button>
+              </MagneticButton>
 
               {turnstileConfigured && !turnstileToken && !isSubmitting && (
                 <p className="font-body text-[10px] text-white/20 text-center mt-2">

@@ -1,8 +1,11 @@
 'use client'
 
+import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useCart } from '@/context/CartContext'
+import { useParallax } from '@/hooks/useParallax'
 import { extractMapSrc } from '@/lib/utils'
+import MagneticButton from './MagneticButton'
 import type { OpeningHours } from '@/types/sanity'
 
 interface ContactSectionProps {
@@ -31,19 +34,61 @@ function InstagramIcon() {
   return (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-gold/60 flex-shrink-0 mt-0.5"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" /></svg>)
 }
 
+function PulsingPin() {
+  return (
+    <div className="flex flex-col items-center justify-center mb-6">
+      <div className="relative w-8 h-8 flex justify-center">
+        {/* Ripples */}
+        <motion.div
+          className="absolute top-0 left-0 w-8 h-8 rounded-full border-2 border-[rgba(125,26,26,0.4)] z-0"
+          animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
+        />
+        <motion.div
+          className="absolute top-0 left-0 w-8 h-8 rounded-full border-2 border-[rgba(125,26,26,0.4)] z-0"
+          animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut", delay: 0.9 }}
+        />
+        
+        {/* Bouncing Pin */}
+        <motion.div 
+          className="relative z-10 w-8 h-8 bg-palace-maroon rounded-full flex items-center justify-center border-2 border-gold"
+          animate={{ y: [0, -6, 0], boxShadow: ['0px 0px 0px transparent', '0px 0px 12px rgba(201,168,76,0.6)', '0px 0px 0px transparent'] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <span className="text-gold text-xs leading-none mt-[-2px]">◆</span>
+          {/* Point */}
+          <div className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-gold" />
+        </motion.div>
+      </div>
+      <p className="font-body text-[10px] tracking-widest uppercase text-cream/30 mt-4">We are here</p>
+    </div>
+  )
+}
+
 export default function ContactSection({ address, phone, email, instagramUrl, reservationUrl, openingHours, googleMapsEmbed }: ContactSectionProps) {
   const { itemCount, openCart } = useCart()
   const igHandle = instagramUrl ? '@' + instagramUrl.replace(/\/$/, '').split('/').pop() : ''
+  const containerRef = useRef<HTMLElement>(null)
+  const yParallax = useParallax(containerRef, 0.8, -150)
 
   return (
-    <section id="contact" className="bg-palace-charcoal py-24 md:py-36 px-6 md:px-16 border-t border-palace-stone">
-      <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}>
+    <section id="contact" ref={containerRef} className="relative bg-palace-charcoal py-24 md:py-36 px-6 md:px-16 border-t border-palace-stone overflow-hidden">
+      <motion.div 
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{ 
+          y: yParallax,
+          background: 'radial-gradient(circle at 80% 20%, rgba(201,168,76,0.03) 0%, transparent 50%)' 
+        }} 
+      />
+      
+      <motion.div className="text-center mb-16 relative z-10" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}>
         <p className="font-body text-xs tracking-[0.35em] uppercase text-gold-muted mb-4">FIND US</p>
         <h2 className="font-display text-5xl md:text-6xl font-light text-white tracking-wide mb-4">Visit the{' '}<span className="text-shimmer">Palace</span></h2>
         <div className="relative flex items-center justify-center w-32 my-6 mx-auto"><div className="absolute inset-0 border-t border-gold/30 top-1/2" /><span className="relative bg-palace-charcoal px-3 text-gold text-xs">◆</span></div>
       </motion.div>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
         {/* Hours */}
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
           <h3 className="font-display text-xl font-light text-white mb-6 tracking-wide">Opening Hours</h3>
@@ -54,9 +99,9 @@ export default function ContactSection({ address, phone, email, instagramUrl, re
             </div>
           ))}
           {reservationUrl && (
-            <a href={reservationUrl} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 mt-6 border border-gold text-gold font-body text-xs tracking-[0.2em] uppercase py-4 hover:bg-gold hover:text-palace-black transition-all duration-300">
+            <MagneticButton href={reservationUrl} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 mt-6 border border-gold text-gold font-body text-xs tracking-[0.2em] uppercase py-4 hover:bg-gold hover:text-palace-black transition-all duration-300">
               <CalendarIcon /> Reserve a Table
-            </a>
+            </MagneticButton>
           )}
         </motion.div>
 
@@ -67,13 +112,14 @@ export default function ContactSection({ address, phone, email, instagramUrl, re
           {phone && <a href={`tel:${phone}`} className="font-body text-sm text-white/50 hover:text-gold transition-colors duration-300 flex items-start gap-3 mb-5"><PhoneIcon /><span>{phone}</span></a>}
           {email && <a href={`mailto:${email}`} className="font-body text-sm text-white/50 hover:text-gold transition-colors duration-300 flex items-start gap-3 mb-5"><EmailIcon /><span>{email}</span></a>}
           {instagramUrl && <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="font-body text-sm text-white/50 hover:text-gold transition-colors duration-300 flex items-start gap-3 mb-5"><InstagramIcon /><span>{igHandle}</span></a>}
-          <button onClick={openCart} className="w-full flex items-center justify-center gap-2 mt-6 border border-gold/50 text-gold font-body text-xs tracking-[0.18em] uppercase py-4 hover:bg-gold/10 hover:border-gold transition-all duration-300">
+          <MagneticButton onClick={openCart} className="w-full flex items-center justify-center gap-2 mt-6 border border-gold/50 text-gold font-body text-xs tracking-[0.18em] uppercase py-4 hover:bg-gold/10 hover:border-gold transition-all duration-300">
             {itemCount > 0 ? `Continue Your Order (${itemCount} items)` : 'Start Your Order'}
-          </button>
+          </MagneticButton>
         </motion.div>
 
         {/* Map */}
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}>
+          <PulsingPin />
           {(() => {
             const mapSrc = extractMapSrc(googleMapsEmbed)
             if (mapSrc) {

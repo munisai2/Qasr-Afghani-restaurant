@@ -11,6 +11,8 @@ import ContactSection from '@/components/ContactSection'
 import SiteFooter from '@/components/SiteFooter'
 import StickyOrderBar from '@/components/StickyOrderBar'
 import StructuredData from '@/components/StructuredData'
+import SizzleDivider from '@/components/SizzleDivider'
+import StatsBar from '@/components/StatsBar'
 
 // ── Dynamic SEO Metadata from Sanity ──
 export async function generateMetadata(): Promise<Metadata> {
@@ -69,16 +71,23 @@ export default async function Page() {
       <main>
         <HeroSection info={info} />
 
+        <StatsBar />
+        <SizzleDivider intensity="strong" />
+
         <RoyalMenuSection
           menuByCategory={menuByCategory}
           restaurantName={info.name}
         />
+
+        <SizzleDivider intensity="medium" />
 
         {info.galleryImages?.length > 0 && (
           <GallerySection images={info.galleryImages} />
         )}
 
         <TestimonialsSection testimonials={testimonials} />
+
+        <SizzleDivider intensity="subtle" />
 
         <AboutSection
           title={info.aboutTitle ?? 'A Palace of Flavors'}
@@ -87,6 +96,8 @@ export default async function Page() {
           team={team}
           openingYear={info.openingYear}
         />
+
+        <SizzleDivider intensity="subtle" />
 
         <ContactSection
           address={info.address}

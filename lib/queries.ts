@@ -19,7 +19,7 @@ export const restaurantInfoQuery = `
 export const menuItemsQuery = `
   *[_type == "menuItem" && isAvailable == true] | order(category asc) {
     _id, name, slug, category, price, 
-    description, image { asset->{ _id, url }, hotspot, crop },
+    description, spiceLevel, includes, dietary, image { asset->{ _id, url }, hotspot, crop },
     isSignature, isAvailable
   }
 `
@@ -38,7 +38,7 @@ export const menuByCategoryQuery = (category: string) => `
   *[_type == "menuItem" && category == "${category}" && isAvailable == true]
   | order(name asc) {
     _id, name, slug, category, price, 
-    description, image { asset->{ _id, url }, hotspot, crop },
+    description, spiceLevel, includes, dietary, image { asset->{ _id, url }, hotspot, crop },
     isSignature, isAvailable
   }
 `

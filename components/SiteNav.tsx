@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-
 import Image from 'next/image'
 import { optimizedImage } from '@/sanity.client'
 import CartNavButton from './CartNavButton'
+import MagneticButton from './MagneticButton'
 import type { SanityImage } from '@/types/sanity'
 
 interface SiteNavProps {
@@ -58,9 +59,9 @@ export default function SiteNav({ logo, restaurantName, reservationUrl }: SiteNa
     <>
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-palace-black/95 backdrop-blur-md border-b border-gold/10' : 'bg-transparent border-b border-transparent'}`}>
         <div className="flex items-center justify-between px-6 md:px-12 h-16 md:h-[72px]">
-          <a href="/#hero" className="flex items-center gap-3 flex-shrink-0">
+          <MagneticButton href="/#hero" className="flex items-center gap-3 flex-shrink-0" strength={0.4} radius={60}>
             {logo ? <Image src={optimizedImage(logo, { width: 96, height: 96 })} alt={restaurantName} width={48} height={48} style={{ objectFit: 'contain', width: '48px', height: 'auto' }} priority /> : <span className="font-display italic text-xl text-gold">{restaurantName}</span>}
-          </a>
+          </MagneticButton>
 
           <div className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link, i) => {
@@ -78,9 +79,10 @@ export default function SiteNav({ logo, restaurantName, reservationUrl }: SiteNa
 
           <div className="hidden md:flex items-center gap-3">
             {reservationUrl && (
-              <motion.a href={reservationUrl} target="_blank" rel="noopener noreferrer"
-                className="font-body text-xs tracking-[0.18em] uppercase border border-gold/40 text-gold px-4 py-2 rounded-none hover:border-gold hover:bg-gold/10 transition-all duration-300"
-                whileHover={{ boxShadow: '0 0 20px rgba(201,168,76,0.2)' }}>Reserve</motion.a>
+              <MagneticButton href={reservationUrl} target="_blank" rel="noopener noreferrer"
+                className="font-body text-xs tracking-[0.18em] uppercase border border-gold/40 text-gold px-4 py-2 rounded-none hover:border-gold hover:bg-gold/10 hover:shadow-[0_0_20px_rgba(201,168,76,0.2)] transition-all duration-300">
+                Reserve
+              </MagneticButton>
             )}
             <CartNavButton />
           </div>

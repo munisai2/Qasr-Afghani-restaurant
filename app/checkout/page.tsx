@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { useCart } from '@/context/CartContext'
 import { AnalyticsEvents } from '@/lib/analytics'
+import MagneticButton from '@/components/MagneticButton'
 
 function generateOrderId() {
   return 'QA-' + Math.random().toString(36).substring(2, 7).toUpperCase()
@@ -172,11 +172,11 @@ export default function CheckoutPage() {
             {/* Submit — store-aware */}
             {storeStatus.isOpen ? (
               <>
-                <motion.button type="submit" disabled={isSubmitting}
-                  className="bg-gold text-palace-black w-full py-5 mt-8 rounded-none font-body font-bold text-sm tracking-[0.25em] uppercase flex items-center justify-center gap-3 disabled:opacity-70"
-                  whileHover={{ boxShadow: '0 0 40px rgba(201,168,76,0.5)' }} whileTap={{ scale: 0.98 }}>
+                <MagneticButton type="submit" disabled={isSubmitting}
+                  className="bg-gold text-palace-black w-full py-5 mt-8 rounded-none font-body font-bold text-sm tracking-[0.25em] uppercase flex items-center justify-center gap-3 disabled:opacity-70 hover:shadow-[0_0_40px_rgba(201,168,76,0.5)] active:scale-[0.98] transition-all duration-300"
+                >
                   {isSubmitting ? <><span className="w-5 h-5 border-2 border-palace-black/30 border-t-palace-black rounded-full animate-spin" /> Placing your order...</> : <>Place Pickup Order  ✦  ${total.toFixed(2)}</>}
-                </motion.button>
+                </MagneticButton>
                 <p className="font-body text-xs text-white/25 text-center mt-3">🏪 Your order will be ready for pickup in 25–35 minutes</p>
               </>
             ) : (

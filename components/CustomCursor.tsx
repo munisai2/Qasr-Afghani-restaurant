@@ -3,6 +3,127 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion'
 
+// ══════════════════════════════════════════════════════
+// EMBER TRAIL CANVAS (Bottom most cursor layer)
+// ══════════════════════════════════════════════════════
+function EmberTrail() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  
+  useEffect(() => {
+    // Only run on devices with a real mouse
+    if (window.matchMedia('(pointer: coarse)').matches) return
+    
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    
+    // Size canvas
+    const updateSize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    updateSize()
+    window.addEventListener('resize', updateSize)
+    
+    // Core Particle Data
+    let particles: Array<{
+      x: number
+      y: number
+      vx: number
+      vy: number
+      life: number
+      decay: number
+      size: number
+      color: string
+    }> = []
+    
+    const colors = [
+      'rgba(201,168,76,',   // gold
+      'rgba(232,201,122,',  // bright gold
+      'rgba(125,26,26,',    // maroon
+      'rgba(255,140,60,'    // orange
+    ]
+    
+    // Spawner
+    let lastSpawn = 0
+    const onMove = (e: MouseEvent) => {
+      const now = performance.now()
+      if (now - lastSpawn < 16) return // throttle to ~60fps spawn rate
+      lastSpawn = now
+      
+      // Spawn 2-3 particles
+      const count = Math.floor(Math.random() * 2) + 2
+      for (let i = 0; i < count; i++) {
+        const colorBase = colors[Math.floor(Math.random() * colors.length)]
+        particles.push({
+          x: e.clientX,
+          y: e.clientY,
+          vx: (Math.random() - 0.5) * 1.6,
+          vy: -(Math.random() * 1.3 + 1.2), // upward bias
+          life: 1.0,
+          decay: Math.random() * 0.01 + 0.018, // 0.018 to 0.028
+          size: Math.random() * 2.0 + 1.5,     // 1.5 to 3.5
+          color: colorBase
+        })
+      }
+      
+      // Cap at 80 for perf
+      if (particles.length > 80) {
+        particles = particles.slice(particles.length - 80)
+      }
+    }
+    document.addEventListener('mousemove', onMove, { passive: true })
+    
+    // Render Loop
+    let rafId: number
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i]
+        
+        p.x += p.vx
+        p.y += p.vy
+        p.vy += 0.04  // gravity pulling down/slowing upward velocity
+        p.vx *= 0.99  // air resistance
+        p.life -= p.decay
+        
+        if (p.life <= 0) {
+          particles.splice(i, 1)
+          continue
+        }
+        
+        ctx.beginPath()
+        ctx.globalAlpha = p.life
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2)
+        ctx.shadowBlur = 6
+        ctx.shadowColor = p.color + '1)'
+        ctx.fillStyle = p.color + '1)'
+        ctx.fill()
+      }
+      
+      rafId = requestAnimationFrame(render)
+    }
+    render()
+    
+    return () => {
+      window.removeEventListener('resize', updateSize)
+      document.removeEventListener('mousemove', onMove)
+      cancelAnimationFrame(rafId)
+    }
+  }, [])
+  
+  return (
+    <canvas 
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-[99996]"
+      aria-hidden="true"
+    />
+  )
+}
+
 export default function CustomCursor() {
   const [mounted,  setMounted]  = useState(false)
   const [visible,  setVisible]  = useState(false)
@@ -91,6 +212,7 @@ export default function CustomCursor() {
 
   return (
     <>
+      <EmberTrail />
       {/* ── LAYER 1: AURA — large soft glow, most lag ── */}
       <motion.div
         aria-hidden="true"

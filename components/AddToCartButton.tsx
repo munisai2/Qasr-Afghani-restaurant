@@ -12,6 +12,7 @@ interface AddToCartButtonProps {
     category: string
     price: number
     image?: string
+    specialInstructions?: string
   }
   variant?: 'card' | 'full'
 }

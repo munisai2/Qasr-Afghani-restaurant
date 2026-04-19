@@ -47,6 +47,9 @@ export interface MenuItem {
   category: string
   price: number
   description: string
+  spiceLevel?: string
+  includes?: string[]
+  dietary?: string[]
   image: SanityImage
   isSignature: boolean
   isAvailable: boolean

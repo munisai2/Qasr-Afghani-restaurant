@@ -18,9 +18,25 @@ export default function RoyalMenuSection({ menuByCategory, restaurantName, showF
   const categories = showFullMenu ? allCategories : allCategories.slice(0, 2)
   const [activeCategory, setActiveCategory] = useState<string>(categories[0] ?? '')
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeTabIcon, setActiveTabIcon] = useState<string>('')
+
+  const CATEGORY_EMOJIS: Record<string, string> = {
+    lamb:       '🍖',
+    chicken:    '🍗',
+    family:     '🍽️',
+    wings:      '🔥',
+    gyro:       '🥙',
+    appetizers: '🥗'
+  }
 
   const handleTabClick = (cat: string) => {
     setActiveCategory(cat)
+    
+    // Animate Tab Emoji
+    const emoji = CATEGORY_EMOJIS[cat.toLowerCase()] || '✨'
+    setActiveTabIcon(emoji)
+    setTimeout(() => setActiveTabIcon(''), 1200)
+
     const el = document.getElementById('menu-grid')
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -81,8 +97,23 @@ export default function RoyalMenuSection({ menuByCategory, restaurantName, showF
         <div className="sticky top-[72px] z-30 bg-palace-black/95 backdrop-blur-sm border-b border-palace-stone">
           <div className="flex overflow-x-auto scrollbar-hide gap-0 max-w-7xl mx-auto">
             {categories.map((cat) => (
-              <button key={cat} onClick={() => handleTabClick(cat)} className={`font-body text-xs tracking-[0.2em] uppercase px-6 py-4 whitespace-nowrap transition-all duration-300 relative ${activeCategory === cat ? 'text-gold' : 'text-white/35 hover:text-white/70'}`} aria-label={`View ${CATEGORY_LABELS[cat] ?? cat}`}>
+              <button key={cat} onClick={() => handleTabClick(cat)} className={`font-body text-xs tracking-[0.2em] uppercase px-4 md:px-6 py-3 md:py-4 whitespace-nowrap transition-all duration-300 relative overflow-visible ${activeCategory === cat ? 'text-gold' : 'text-white/35 hover:text-white/70'}`} aria-label={`View ${CATEGORY_LABELS[cat] ?? cat}`}>
                 {CATEGORY_LABELS[cat] ?? cat}
+                
+                <AnimatePresence>
+                  {activeCategory === cat && activeTabIcon && (
+                    <motion.div
+                      className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-4xl pointer-events-none z-10 drop-shadow-[0_0_15px_rgba(201,168,76,0.6)]"
+                      initial={{ y: -20, opacity: 0, scale: 0.5 }}
+                      animate={{ y: 0, opacity: 1, scale: 1.2 }}
+                      exit={{ y: 10, opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {activeTabIcon}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {activeCategory === cat && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-px bg-gold" transition={{ type: 'spring', stiffness: 380, damping: 30 }} />}
               </button>
             ))}

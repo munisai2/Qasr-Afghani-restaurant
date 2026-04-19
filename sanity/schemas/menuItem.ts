@@ -47,6 +47,42 @@ export default defineType({
       rows: 3,
     }),
     defineField({
+      name: 'spiceLevel',
+      title: 'Spice Level',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'None',  value: 'none' },
+          { title: 'Mild',  value: 'mild' },
+          { title: 'Medium',value: 'medium'},
+          { title: 'Spicy', value: 'spicy'},
+          { title: 'Extra Spicy', value: 'extra_spicy'}
+        ]
+      }
+    }),
+    defineField({
+      name: 'includes',
+      title: 'Includes (Served With)',
+      type: 'array',
+      of: [{ type: 'string' }],
+    }),
+    defineField({
+      name: 'dietary',
+      title: 'Dietary Markers',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        list: [
+          { title: 'Gluten-Free', value: 'gf' },
+          { title: 'Halal', value: 'halal' },
+          { title: 'Vegan', value: 'vegan' },
+          { title: 'Vegetarian', value: 'vegetarian' },
+          { title: 'Contains Dairy', value: 'dairy' },
+          { title: 'Contains Nuts', value: 'nuts' }
+        ]
+      }
+    }),
+    defineField({
       name: 'image',
       title: 'Dish Photo',
       type: 'image',

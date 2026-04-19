@@ -1,6 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useRef } from 'react'
+import { useParallax } from '@/hooks/useParallax'
 import type { Testimonial } from '@/types/sanity'
 
 interface TestimonialsSectionProps {
@@ -15,10 +17,20 @@ export default function TestimonialsSection({ testimonials }: TestimonialsSectio
     return null
   }
 
+  const containerRef = useRef<HTMLElement>(null)
+  const yParallax = useParallax(containerRef, 0.4, 300)
+
   return (
-    <section className="bg-palace-smoke py-20 md:py-28 px-6 md:px-16 border-t border-palace-stone">
+    <section ref={containerRef} className="relative bg-palace-smoke py-20 md:py-28 px-6 md:px-16 border-t border-palace-stone overflow-hidden">
+      {/* Parallax Background Monogram/Shape */}
+      <motion.div 
+        className="absolute -right-20 top-10 font-display text-[300px] text-palace-stone/10 pointer-events-none z-0"
+        style={{ y: yParallax }}
+      >
+        Q
+      </motion.div>
       <motion.div
-        className="text-center mb-12"
+        className="text-center mb-12 relative z-10"
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -37,7 +49,7 @@ export default function TestimonialsSection({ testimonials }: TestimonialsSectio
         </div>
       </motion.div>
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Mobile: horizontal scroll / Desktop: grid */}
         <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 md:overflow-visible md:pb-0">
           {testimonials.map((t, i) => (
