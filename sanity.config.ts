@@ -75,6 +75,15 @@ export default defineConfig({
                   .apiVersion(defaultApiVersion)
                   .filter('_type == "teamMember"')
               ),
+            S.divider(),
+            // Kitchen App Settings singleton
+            S.listItem()
+              .title('🍢 Kitchen App Settings')
+              .child(
+                S.document()
+                  .schemaType('kitchenSettings')
+                  .documentId('kitchenSettings')
+              ),
           ])
       },
     }),
