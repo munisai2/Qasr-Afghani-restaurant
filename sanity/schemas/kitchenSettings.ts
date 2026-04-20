@@ -83,11 +83,6 @@ export default defineType({
     }),
   ],
 
-  // Singleton — only one document of this type ever exists.
-  // Owner can update it but never create a second one
-  // or delete it.
-  __experimental_actions: ['update', 'publish'],
-
   preview: {
     prepare() {
       return {
