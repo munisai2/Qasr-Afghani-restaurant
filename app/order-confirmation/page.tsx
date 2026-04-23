@@ -3,17 +3,21 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { format, parseISO } from 'date-fns'
 
 interface SavedOrder {
   orderId: string
   items: Array<{ id: string; name: string; quantity: number; price: number; specialInstructions?: string }>
-  orderType: 'pickup'
+  orderType: 'pickup' | 'dine-in'
+  tableNumber?: string
   subtotal: number
   tax: number
   total: number
   customer: { firstName: string; lastName: string; phone: string; email: string }
   specialRequests: string
   placedAt: string
+  estimatedTime?: number
+  scheduledTime?: string | null
 }
 
 export default function OrderConfirmationPage() {
@@ -41,6 +45,8 @@ export default function OrderConfirmationPage() {
   const placedTime = new Date(order.placedAt).toLocaleTimeString('en-US', {
     hour: 'numeric', minute: '2-digit', hour12: true,
   })
+
+  const isDineIn = order.orderType === 'dine-in'
 
   return (
     <div className="min-h-screen bg-palace-black flex flex-col items-center justify-center px-6 py-20 text-center relative overflow-hidden">
@@ -71,21 +77,65 @@ export default function OrderConfirmationPage() {
         <p className="font-display text-2xl text-shimmer tracking-widest mt-2">#{order.orderId}</p>
 
         {/* Message */}
-        <p className="font-body text-sm text-white/50 leading-relaxed max-w-sm mx-auto mt-4">
-          Your order is being prepared.<br />Please come to the counter in approximately 25–35 minutes.
-        </p>
-
-        {/* Phone Box */}
-        <div className="border border-gold/20 bg-gold/5 px-6 py-4 mt-8 max-w-sm mx-auto flex items-center gap-3">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="1.5" className="w-5 h-5 flex-shrink-0">
-            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-          </svg>
-          <p className="font-body text-sm text-white/60 text-left">
-            We will call {order.customer.firstName} at{' '}
-            <span className="text-gold">{order.customer.phone}</span>{' '}
-            to confirm your order.
-          </p>
+        <div className="mt-4">
+          {order.scheduledTime ? (
+            <div className="space-y-6">
+              <div className="w-20 h-20 border border-gold/30 flex items-center justify-center mx-auto mb-2 bg-gold/5">
+                <span className="text-4xl text-gold">📅</span>
+              </div>
+              <h2 className="font-display text-2xl text-white tracking-wide">Order Scheduled!</h2>
+              <div className="bg-gold/10 border border-gold/20 py-4 px-6 max-w-sm mx-auto">
+                <p className="font-display text-2xl text-gold">
+                  {format(parseISO(order.scheduledTime), 'EEEE, MMMM d')}
+                </p>
+                <p className="font-display text-xl text-gold mt-1">
+                  at {format(parseISO(order.scheduledTime), 'h:mm a')}
+                </p>
+              </div>
+              <p className="font-body text-sm text-white/50 leading-relaxed max-w-sm mx-auto">
+                Your order will be prepared fresh and ready at your scheduled time. We will send you an SMS reminder 30 minutes before.
+              </p>
+              <p className="font-body text-[10px] text-cream/30 uppercase tracking-[0.2em]">
+                You will receive an SMS confirmation shortly
+              </p>
+            </div>
+          ) : (
+            <>
+              {isDineIn ? (
+                <div className="space-y-4">
+                  <p className="font-display text-2xl text-cream/80">Table {order.tableNumber}</p>
+                  <p className="font-body text-sm text-white/50 leading-relaxed max-w-sm mx-auto">
+                    Your order is placed! Our team will bring your food to your table as soon as it is ready.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="font-body text-xs text-cream/40 tracking-wide uppercase">Estimated Ready Time</p>
+                  <p className="font-display text-4xl text-gold mt-1">
+                    {order.estimatedTime ? `~${order.estimatedTime} minutes` : '25–35 minutes'}
+                  </p>
+                  <p className="font-body text-sm text-white/50 leading-relaxed max-w-sm mx-auto">
+                    Your order is being prepared. You will receive an SMS when it is ready for pickup!
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
+
+        {/* Info Box — only for non-scheduled or as secondary for scheduled */}
+        {!order.scheduledTime && (
+          <div className="border border-gold/20 bg-gold/5 px-6 py-4 mt-8 max-w-sm mx-auto flex items-center gap-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="1.5" className="w-5 h-5 flex-shrink-0">
+              <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="font-body text-sm text-white/60 text-left">
+              You will receive an SMS confirmation on{' '}
+              <span className="text-gold">{order.customer.phone}</span>{' '}
+              shortly.
+            </p>
+          </div>
+        )}
 
         {/* Order Details Toggle */}
         <button
@@ -115,13 +165,18 @@ export default function OrderConfirmationPage() {
                 <div className="border-t border-palace-stone/50 pt-2 mt-2 space-y-1">
                   <div className="flex justify-between"><span className="font-body text-xs text-white/40">Subtotal</span><span className="font-body text-xs text-white/70">${order.subtotal.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span className="font-body text-xs text-white/40">Tax</span><span className="font-body text-xs text-white/70">${order.tax.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="font-body text-xs text-white/40">Pickup</span><span className="font-body text-xs text-gold">FREE</span></div>
+                  <div className="flex justify-between"><span className="font-body text-xs text-white/40">{isDineIn ? 'Service' : 'Pickup'}</span><span className="font-body text-xs text-gold">{isDineIn ? 'AT TABLE' : 'FREE'}</span></div>
                   <div className="border-t border-palace-stone/50 pt-1"><div className="flex justify-between"><span className="font-display text-sm text-white">Total</span><span className="font-display text-sm text-gold">${order.total.toFixed(2)}</span></div></div>
                 </div>
                 {order.specialRequests && (
                   <div className="pt-2">
                     <p className="font-body text-xs text-white/30 tracking-widest uppercase mb-1">Special Requests</p>
                     <p className="font-body text-xs text-white/50 italic">{order.specialRequests}</p>
+                  </div>
+                )}
+                {isDineIn && (
+                  <div className="pt-2 border-t border-palace-stone/30">
+                    <p className="font-body text-xs text-gold tracking-widest uppercase">Table {order.tableNumber}</p>
                   </div>
                 )}
                 <p className="font-body text-[10px] text-white/20 pt-2">Placed at {placedTime}</p>

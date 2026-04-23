@@ -5,6 +5,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       email, orderId, customerName, customerPhone,
+      orderType, tableNumber,
       items, subtotal, tax, total,
       specialRequests, placedAt,
     } = body
@@ -32,6 +33,8 @@ export async function POST(req: NextRequest) {
     const resend = new Resend(apiKey)
     const results: string[] = []
 
+    const isDineIn = orderType === 'dine-in'
+
     // 1. Send receipt to customer (only if they provided email)
     if (email) {
       const { error: customerErr } = await resend.emails.send({
@@ -39,7 +42,8 @@ export async function POST(req: NextRequest) {
         to:      [email],
         subject: `Order Confirmed — ${orderId} | Qasr Afghan`,
         html:    generateReceiptHTML({
-          orderId, customerName, orderType: 'pickup',
+          orderId, customerName, orderType: orderType ?? 'pickup',
+          tableNumber,
           items, subtotal, tax, total,
           specialRequests, placedAt,
         }),
@@ -53,14 +57,17 @@ export async function POST(req: NextRequest) {
 
     // 2. Send order notification to owner (always, if configured)
     if (ownerAddr) {
+      const typeLabel = isDineIn ? `Dine In (Table ${tableNumber})` : 'Pickup'
       const { error: ownerErr } = await resend.emails.send({
         from:    `Qasr Afghan Orders <${fromAddr}>`,
         to:      [ownerAddr],
         replyTo: email ? [email] : undefined,
-        subject: `🔔 New Pickup Order — ${orderId} | $${Number(total).toFixed(2)}`,
+        subject: `🔔 New ${typeLabel} Order — ${orderId} | $${Number(total).toFixed(2)}`,
         html:    generateOwnerOrderHTML({
           orderId, customerName,
           customerPhone: customerPhone ?? 'Not provided',
+          orderType: orderType ?? 'pickup',
+          tableNumber,
           items, subtotal, tax, total,
           specialRequests, placedAt,
         }),

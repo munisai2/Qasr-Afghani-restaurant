@@ -35,6 +35,8 @@ export interface RestaurantInfo {
   email: string
   instagramUrl: string
   reservationUrl: string
+  restaurantStatus?: 'open' | 'busy' | 'paused'
+  busyExtraMinutes?: number
   seoTitle: string
   seoDescription: string
   seoImage: SanityImage
@@ -46,6 +48,7 @@ export interface MenuItem {
   slug: { current: string }
   category: string
   price: number
+  prepTime?: number
   description: string
   spiceLevel?: string
   includes?: string[]
@@ -87,4 +90,27 @@ export interface Testimonial {
   rating: number
   isHighlighted: boolean
 }
+export type OrderStatus = 'new' | 'scheduled' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
 
+export interface Order {
+  _id: string
+  orderId: string
+  status: OrderStatus
+  customerName: string
+  customerPhone: string
+  customerEmail?: string
+  orderType: 'pickup' | 'dine-in'
+  tableNumber?: string
+  items: Array<{
+    name: string
+    quantity: number
+    price: number
+  }>
+  subtotal: number
+  tax: number
+  total: number
+  specialRequests?: string
+  placedAt: string
+  scheduledTime?: string
+  estimatedTime?: number
+}

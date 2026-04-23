@@ -10,12 +10,13 @@ export default defineType({
       name: 'status', title: 'Status', type: 'string',
       options: {
         list: [
-          { title: 'New',       value: 'new'       },
-          { title: 'Confirmed', value: 'confirmed' },
-          { title: 'Preparing', value: 'preparing' },
-          { title: 'Ready',     value: 'ready'     },
-          { title: 'Completed', value: 'completed' },
-          { title: 'Cancelled', value: 'cancelled' },
+          { title: 'New',          value: 'new'       },
+          { title: '📅 Scheduled', value: 'scheduled' },
+          { title: 'Confirmed',    value: 'confirmed' },
+          { title: 'Preparing',    value: 'preparing' },
+          { title: 'Ready',        value: 'ready'     },
+          { title: 'Completed',    value: 'completed' },
+          { title: 'Cancelled',    value: 'cancelled' },
         ],
       },
       initialValue: 'new',
@@ -25,8 +26,18 @@ export default defineType({
     defineField({ name: 'customerEmail', title: 'Customer Email (optional)', type: 'string' }),
     defineField({
       name: 'orderType', title: 'Order Type', type: 'string',
-      options: { list: [{ title: 'Pickup', value: 'pickup' }] },
+      options: { 
+        list: [
+          { title: 'Pickup',  value: 'pickup'  },
+          { title: 'Dine In', value: 'dine-in' },
+        ] 
+      },
       initialValue: 'pickup',
+    }),
+    defineField({
+      name:  'tableNumber',
+      title: 'Table Number',
+      type:  'string',
     }),
     defineField({
       name: 'items', title: 'Order Items', type: 'array',
@@ -49,6 +60,17 @@ export default defineType({
       name: 'notes', title: 'Staff Notes', type: 'text',
       description: 'Internal notes — not visible to customer',
     }),
+    defineField({
+      name:  'scheduledTime',
+      title: 'Scheduled Pickup Time',
+      type:  'datetime',
+      description: 'If set, this is a scheduled order. ' +
+                   'Kitchen will be alerted 30 minutes before this time.',
+    }),
+    defineField({ name: 'estimatedTime',    title: 'Estimated Pickup Time (min)', type: 'number' }),
+    defineField({ name: 'discountAmount',   title: 'Discount Amount ($)',         type: 'number' }),
+    defineField({ name: 'adjustmentReason',  title: 'Adjustment Reason',           type: 'string' }),
+    defineField({ name: 'cancellationReason', title: 'Cancellation Reason',          type: 'string' }),
   ],
   preview: {
     select: { title: 'orderId', subtitle: 'customerName', status: 'status' },

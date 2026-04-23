@@ -96,6 +96,7 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
                   name: item.name,
                   category: item.category,
                   price: item.price,
+                  prepTime: item.prepTime,
                   image: item.image ? optimizedImage(item.image, { width: 128, height: 128 }) : undefined,
                   specialInstructions
                 }}
@@ -249,6 +250,7 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
                   name: item.name,
                   category: item.category,
                   price: item.price,
+                  prepTime: item.prepTime,
                   image: item.image ? optimizedImage(item.image, { width: 128, height: 128 }) : undefined,
                   specialInstructions
                 }}

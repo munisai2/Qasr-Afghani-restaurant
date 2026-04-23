@@ -10,6 +10,7 @@ export const restaurantInfoQuery = `
     openingHours,
     address, phone, email,
     instagramUrl, reservationUrl,
+    restaurantStatus, busyExtraMinutes,
     seoTitle, seoDescription,
     seoImage { asset->{ _id, url } }
   }
@@ -18,7 +19,7 @@ export const restaurantInfoQuery = `
 /** Fetches all available menu items, ordered by category */
 export const menuItemsQuery = `
   *[_type == "menuItem" && isAvailable == true] | order(category asc) {
-    _id, name, slug, category, price, 
+    _id, name, slug, category, price, prepTime,
     description, spiceLevel, includes, dietary, image { asset->{ _id, url }, hotspot, crop },
     isSignature, isAvailable
   }
@@ -28,7 +29,7 @@ export const menuItemsQuery = `
 export const signatureDishesQuery = `
   *[_type == "menuItem" && isSignature == true && isAvailable == true] 
   | order(name asc) [0...6] {
-    _id, name, slug, category, price, description, 
+    _id, name, slug, category, price, prepTime, description, 
     image { asset->{ _id, url }, hotspot, crop }
   }
 `
@@ -37,7 +38,7 @@ export const signatureDishesQuery = `
 export const menuByCategoryQuery = (category: string) => `
   *[_type == "menuItem" && category == "${category}" && isAvailable == true]
   | order(name asc) {
-    _id, name, slug, category, price, 
+    _id, name, slug, category, price, prepTime,
     description, spiceLevel, includes, dietary, image { asset->{ _id, url }, hotspot, crop },
     isSignature, isAvailable
   }

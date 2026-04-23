@@ -17,7 +17,7 @@ export interface StoreStatus {
  * Returns -1 for any input that is missing, null, empty, or unparseable.
  * NEVER throws.
  */
-function parseTimeToMinutes(timeStr: string | undefined | null): number {
+export function parseTimeToMinutes(timeStr: string | undefined | null): number {
   if (!timeStr || typeof timeStr !== 'string') return -1
   const trimmed = timeStr.trim()
   if (!trimmed) return -1
@@ -53,7 +53,7 @@ function parseTimeToMinutes(timeStr: string | undefined | null): number {
  * into an array of day indices.  0 = Sunday … 6 = Saturday.
  * Returns [] for any bad input. NEVER throws.
  */
-function parseDayRange(daysStr: string | undefined | null): number[] {
+export function parseDayRange(daysStr: string | undefined | null): number[] {
   if (!daysStr || typeof daysStr !== 'string') return []
   const trimmed = daysStr.trim()
   if (!trimmed) return []

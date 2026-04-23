@@ -11,6 +11,7 @@ interface AddToCartButtonProps {
     name: string
     category: string
     price: number
+    prepTime?: number
     image?: string
     specialInstructions?: string
   }

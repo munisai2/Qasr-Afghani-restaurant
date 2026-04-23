@@ -1,5 +1,14 @@
 import { defineField, defineType } from 'sanity'
 
+const CATEGORY_LABELS: Record<string, string> = {
+  lamb:       'Lamb Specials',
+  chicken:    'Chicken Specials',
+  family:     'Family Packages',
+  wings:      'Buffalo Wild Wings',
+  gyro:       'Gyro Specials',
+  appetizers: 'Appetizers & Drinks',
+}
+
 export default defineType({
   name: 'menuItem',
   title: 'Menu Item',
@@ -39,6 +48,15 @@ export default defineType({
       name: 'price',
       title: 'Price (USD)',
       type: 'number',
+    }),
+    defineField({
+      name:        'prepTime',
+      title:       'Preparation Time (minutes)',
+      type:        'number',
+      description: 'How many minutes this dish takes to prepare. ' +
+                   'Used to calculate estimated ready time for customers.',
+      initialValue: 20,
+      validation:   Rule => Rule.min(1).max(120),
     }),
     defineField({
       name: 'description',
@@ -103,4 +121,18 @@ export default defineType({
       initialValue: true,
     }),
   ],
+  preview: {
+    select: {
+      title:    'name',
+      category: 'category',
+      price:    'price',
+      prepTime: 'prepTime',
+    },
+    prepare({ title, category, price, prepTime }) {
+      return {
+        title,
+        subtitle: `${CATEGORY_LABELS[category] || category} · $${price} · ${prepTime ?? 20} min`,
+      }
+    },
+  },
 })

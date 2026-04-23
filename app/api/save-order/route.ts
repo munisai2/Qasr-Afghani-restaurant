@@ -6,7 +6,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       orderId, customerName, customerPhone, customerEmail,
+      orderType, tableNumber,
       items, subtotal, tax, total, specialRequests, placedAt,
+      estimatedTime, scheduledTime,
     } = body
 
     if (!orderId || !customerName) {
@@ -22,11 +24,14 @@ export async function POST(req: NextRequest) {
       _type:           'order',
       _id:             `order-${orderId}`,
       orderId,
-      status:          'new',
+      status:          scheduledTime ? 'scheduled' : 'new',
       customerName,
       customerPhone:   customerPhone ?? '',
       customerEmail:   customerEmail ?? '',
-      orderType:       'pickup',
+      orderType:       orderType ?? 'pickup',
+      tableNumber:     orderType === 'dine-in' ? (tableNumber ?? '') : '',
+      estimatedTime:   Number(estimatedTime ?? 25),
+      scheduledTime:   scheduledTime || null,
       items:           (items ?? []).map((item: any, i: number) => ({
         _type:    'orderItem',
         _key:     `item-${i}`,

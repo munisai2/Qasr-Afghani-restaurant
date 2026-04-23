@@ -15,14 +15,17 @@ export interface CartItem {
   category: string
   price: number
   quantity: number
+  prepTime?: number
   image?: string
   specialInstructions?: string
 }
 
 interface CartState {
-  items: CartItem[]
-  isOpen: boolean
-  orderType: 'pickup'
+  items:         CartItem[]
+  isOpen:        boolean
+  orderType:     'pickup' | 'dine-in'
+  scheduledTime: string | null   // ISO datetime string or null
+  tableNumber:   string
 }
 
 type CartAction =
@@ -35,13 +38,16 @@ type CartAction =
   | { type: 'CLEAR_CART' }
   | { type: 'OPEN_CART' }
   | { type: 'CLOSE_CART' }
-  | { type: 'HYDRATE'; payload: CartItem[] }
+  | { type: 'SET_ORDER_TYPE'; payload: 'pickup' | 'dine-in' }
+  | { type: 'SET_SCHEDULED_TIME'; payload: string | null }
+  | { type: 'SET_TABLE_NUMBER'; payload: string }
+  | { type: 'HYDRATE'; payload: { items: CartItem[]; orderType?: 'pickup' | 'dine-in'; scheduledTime?: string | null; tableNumber?: string } }
 
 // ═══════════════════════════════════════
 // REDUCER
 // ═══════════════════════════════════════
 
-const initialState: CartState = { items: [], isOpen: false, orderType: 'pickup' }
+const initialState: CartState = { items: [], isOpen: false, orderType: 'pickup', scheduledTime: null, tableNumber: '' }
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -77,8 +83,20 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, isOpen: true }
     case 'CLOSE_CART':
       return { ...state, isOpen: false }
+    case 'SET_ORDER_TYPE':
+      return { ...state, orderType: action.payload, scheduledTime: action.payload === 'dine-in' ? null : state.scheduledTime }
+    case 'SET_SCHEDULED_TIME':
+      return { ...state, scheduledTime: action.payload }
+    case 'SET_TABLE_NUMBER':
+      return { ...state, tableNumber: action.payload }
     case 'HYDRATE':
-      return { ...state, items: action.payload }
+      return { 
+        ...state, 
+        items: action.payload.items, 
+        orderType: action.payload.orderType || 'pickup',
+        scheduledTime: action.payload.scheduledTime || null,
+        tableNumber: action.payload.tableNumber || ''
+      }
     default:
       return state
   }
@@ -101,6 +119,9 @@ interface CartContextValue {
   removeItem: (id: string) => void
   incrementItem: (id: string) => void
   decrementItem: (id: string) => void
+  setOrderType: (type: 'pickup' | 'dine-in') => void
+  setScheduledTime: (time: string | null) => void
+  setTableNumber: (num: string) => void
   clearCart: () => void
   openCart: () => void
   closeCart: () => void
@@ -124,14 +145,29 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
       const saved = sessionStorage.getItem('qasr-cart')
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (parsed.items?.length > 0) dispatch({ type: 'HYDRATE', payload: parsed.items })
+        if (parsed.items?.length > 0) {
+          dispatch({ 
+            type: 'HYDRATE', 
+            payload: {
+              items: parsed.items,
+              orderType: parsed.orderType,
+              scheduledTime: parsed.scheduledTime,
+              tableNumber: parsed.tableNumber
+            }
+          })
+        }
       }
     } catch { /* ignore */ }
   }, [])
 
   useEffect(() => {
-    sessionStorage.setItem('qasr-cart', JSON.stringify({ items: state.items }))
-  }, [state.items])
+    sessionStorage.setItem('qasr-cart', JSON.stringify({ 
+      items: state.items,
+      orderType: state.orderType,
+      scheduledTime: state.scheduledTime,
+      tableNumber: state.tableNumber
+    }))
+  }, [state.items, state.orderType, state.scheduledTime, state.tableNumber])
 
   useEffect(() => {
     document.body.style.overflow = state.isOpen ? 'hidden' : ''
@@ -159,6 +195,9 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
   const removeItem = useCallback((id: string) => dispatch({ type: 'REMOVE_ITEM', payload: { id } }), [])
   const incrementItem = useCallback((id: string) => dispatch({ type: 'INCREMENT', payload: { id } }), [])
   const decrementItem = useCallback((id: string) => dispatch({ type: 'DECREMENT', payload: { id } }), [])
+  const setOrderType = useCallback((type: 'pickup' | 'dine-in') => dispatch({ type: 'SET_ORDER_TYPE', payload: type }), [])
+  const setScheduledTime = useCallback((time: string | null) => dispatch({ type: 'SET_SCHEDULED_TIME', payload: time }), [])
+  const setTableNumber = useCallback((num: string) => dispatch({ type: 'SET_TABLE_NUMBER', payload: num }), [])
   const clearCart = useCallback(() => dispatch({ type: 'CLEAR_CART' }), [])
   const openCart = useCallback(() => dispatch({ type: 'OPEN_CART' }), [])
   const closeCart = useCallback(() => dispatch({ type: 'CLOSE_CART' }), [])
@@ -168,9 +207,11 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
   const value = useMemo(() => ({
     state, dispatch, itemCount, subtotal, tax, total, storeStatus,
     addItem, addItemWithQty, removeItem, incrementItem, decrementItem,
+    setOrderType, setScheduledTime, setTableNumber,
     clearCart, openCart, closeCart, isInCart, getItemQuantity,
   }), [state, itemCount, subtotal, tax, total, storeStatus,
     addItem, addItemWithQty, removeItem, incrementItem, decrementItem,
+    setOrderType, setScheduledTime, setTableNumber,
     clearCart, openCart, closeCart, isInCart, getItemQuantity])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

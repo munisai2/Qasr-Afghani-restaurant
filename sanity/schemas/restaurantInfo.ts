@@ -23,6 +23,32 @@ export default defineType({
       options: { hotspot: true },
     }),
     defineField({
+      name:  'restaurantStatus',
+      title: 'Restaurant Status',
+      type:  'string',
+      options: {
+        list: [
+          { title: '🟢 Open — accepting orders',    value: 'open'   },
+          { title: '🟡 Busy — longer wait times',   value: 'busy'   },
+          { title: '🔴 Paused — not taking orders', value: 'paused' },
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'open',
+      description:
+        'Controls order acceptance on the website. ' +
+        'Change from Kitchen App or Studio.',
+    }),
+    defineField({
+      name:        'busyExtraMinutes',
+      title:       'Busy Mode: Extra Prep Time (minutes)',
+      type:        'number',
+      description: 'When status is set to "Busy", this many minutes are added ' +
+                   'to the calculated ready time for all orders.',
+      initialValue: 15,
+      validation:   Rule => Rule.min(0).max(120),
+    }),
+    defineField({
       name: 'heroImage',
       title: 'Hero Background Image',
       type: 'image',

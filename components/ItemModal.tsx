@@ -33,6 +33,7 @@ export default function ItemModal() {
         name: item.name,
         category: item.category,
         price: item.price,
+        prepTime: item.prepTime,
         image: item.image ? optimizedImage(item.image, { width: 128, height: 128 }) : undefined,
       },
       quantity

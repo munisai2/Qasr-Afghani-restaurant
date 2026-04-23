@@ -11,6 +11,7 @@ export default function CartDrawer() {
   const {
     state, itemCount, subtotal, tax, total, storeStatus,
     incrementItem, decrementItem, removeItem, closeCart, dispatch,
+    setOrderType, setTableNumber,
   } = useCart()
 
   return (
@@ -31,9 +32,57 @@ export default function CartDrawer() {
             <div className="flex-shrink-0 px-6 py-5 border-b border-palace-stone flex items-center justify-between">
               <div>
                 <h2 className="font-display text-xl font-light text-white">Your Order</h2>
-                <p className="font-body text-xs text-gold-muted tracking-wide">{itemCount} item{itemCount !== 1 ? 's' : ''} · Pickup</p>
+                <p className="font-body text-xs text-gold-muted tracking-wide">{itemCount} item{itemCount !== 1 ? 's' : ''} · {state.orderType === 'dine-in' ? `Table ${state.tableNumber || '?'}` : 'Pickup'}</p>
               </div>
               <button onClick={closeCart} className="w-8 h-8 border border-palace-stone text-white/40 hover:text-gold hover:border-gold transition-all duration-200 flex items-center justify-center" aria-label="Close cart">✕</button>
+            </div>
+
+            {/* Order Type Selector */}
+            <div className="flex-shrink-0 px-6 py-4 bg-palace-smoke/50 border-b border-palace-stone">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setOrderType('pickup')}
+                  className={`relative p-3 border text-left transition-all duration-300 ${state.orderType === 'pickup' ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'bg-transparent border-white/10 hover:border-white/20 opacity-60 hover:opacity-100'}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="text-xl">🏪</span>
+                    <span className="bg-gold text-[8px] text-palace-black font-bold px-1.5 py-0.5 rounded-full tracking-tighter uppercase">Free</span>
+                  </div>
+                  <h3 className="font-display text-sm text-white mt-2">Pickup</h3>
+                  <p className="font-body text-[10px] text-white/40">Ready in 25–35 min</p>
+                  {state.orderType === 'pickup' && <motion.div layoutId="active-tick" className="absolute top-2 right-2 text-gold text-xs">✓</motion.div>}
+                </button>
+
+                <button
+                  onClick={() => setOrderType('dine-in')}
+                  className={`relative p-3 border text-left transition-all duration-300 ${state.orderType === 'dine-in' ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'bg-transparent border-white/10 hover:border-white/20 opacity-60 hover:opacity-100'}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="text-xl">🍽️</span>
+                    <span className="bg-gold/20 text-gold text-[8px] font-bold px-1.5 py-0.5 rounded-full tracking-tighter uppercase border border-gold/30">At Table</span>
+                  </div>
+                  <h3 className="font-display text-sm text-white mt-2">Dine In</h3>
+                  <p className="font-body text-[10px] text-white/40">At your table</p>
+                  {state.orderType === 'dine-in' && <motion.div layoutId="active-tick" className="absolute top-2 right-2 text-gold text-xs">✓</motion.div>}
+                </button>
+              </div>
+
+              {state.orderType === 'dine-in' && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="mt-3"
+                >
+                  <input
+                    type="number"
+                    placeholder="Table number"
+                    value={state.tableNumber}
+                    onChange={(e) => setTableNumber(e.target.value)}
+                    className="w-full bg-palace-black border border-gold/30 text-gold text-sm p-3 focus:outline-none focus:border-gold placeholder:text-gold/20 font-body transition-all"
+                    required
+                  />
+                </motion.div>
+              )}
             </div>
 
             {/* Items */}
@@ -62,7 +111,7 @@ export default function CartDrawer() {
               <div className="flex-shrink-0 border-t border-palace-stone px-6 py-5 space-y-2">
                 <SummaryRow label="Subtotal" value={`$${subtotal.toFixed(2)}`} />
                 <SummaryRow label="Tax (8%)" value={`$${tax.toFixed(2)}`} />
-                <SummaryRow label="Pickup" value="FREE" valueClass="text-gold" />
+                <SummaryRow label={state.orderType === 'dine-in' ? 'Service' : 'Pickup'} value={state.orderType === 'dine-in' ? 'AT TABLE' : 'FREE'} valueClass="text-gold" />
                 <div className="border-t border-palace-stone/50 my-2" />
                 <div className="flex justify-between">
                   <span className="font-display text-base text-white">Total</span>
@@ -81,13 +130,16 @@ export default function CartDrawer() {
                   <p className="font-body text-[10px] text-red-400/60 text-center mb-2">🔴 {storeStatus.message}</p>
                 )}
                 <motion.button
+                  disabled={state.orderType === 'dine-in' && !state.tableNumber}
                   onClick={() => { closeCart(); router.push('/checkout') }}
-                  className="bg-gold text-palace-black w-full py-4 rounded-none font-body font-semibold text-sm tracking-[0.2em] uppercase flex items-center justify-center gap-3"
-                  whileHover={{ boxShadow: '0 0 30px rgba(201,168,76,0.5)' }}
-                  whileTap={{ scale: 0.98 }}>
+                  className="bg-gold text-palace-black w-full py-4 rounded-none font-body font-semibold text-sm tracking-[0.2em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={state.orderType === 'dine-in' && !state.tableNumber ? {} : { boxShadow: '0 0 30px rgba(201,168,76,0.5)' }}
+                  whileTap={state.orderType === 'dine-in' && !state.tableNumber ? {} : { scale: 0.98 }}>
                   Proceed to Checkout →
                 </motion.button>
-                <p className="font-body text-[10px] text-white/20 mt-3 text-center">🏪 Pickup · Ready in 25–35 min</p>
+                <p className="font-body text-[10px] text-white/20 mt-3 text-center">
+                  {state.orderType === 'pickup' ? '🏪 Pickup · Ready in 25–35 min' : `🍽️ Dine In · Table ${state.tableNumber || '?'}`}
+                </p>
               </div>
             )}
           </motion.div>
