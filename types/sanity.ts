@@ -40,6 +40,18 @@ export interface RestaurantInfo {
   seoTitle: string
   seoDescription: string
   seoImage: SanityImage
+  totalTables?:          number
+  maxPartySize?:         number
+}
+
+export interface PromoCode {
+  _id: string
+  code: string
+  discountType: 'percentage' | 'fixed' | 'bogo'
+  discountValue: number
+  minOrderAmount: number
+  expiryDate?: string
+  applicableItemIds?: string[]
 }
 
 export interface MenuItem {
@@ -99,7 +111,8 @@ export interface Order {
   customerName: string
   customerPhone: string
   customerEmail?: string
-  orderType: 'pickup' | 'dine-in'
+  orderType: 'pickup' | 'pickup-scheduled' | 'dine-in' | 'reservation'
+  guestCount?: number
   tableNumber?: string
   items: Array<{
     name: string
@@ -112,5 +125,8 @@ export interface Order {
   specialRequests?: string
   placedAt: string
   scheduledTime?: string
+  reservationTime?: string
   estimatedTime?: number
+  promoCode?: string
+  promoDiscount?: number
 }

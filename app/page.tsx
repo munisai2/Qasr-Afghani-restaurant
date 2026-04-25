@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { fetchRestaurantInfo, fetchMenuByCategory, fetchTeamMembers, fetchTestimonials } from '@/lib/fetchData'
+import { fetchRestaurantInfo, fetchMenuByCategory, fetchTeamMembers, fetchCombinedReviews } from '@/lib/fetchData'
 import { optimizedImage } from '@/sanity.client'
 import SiteNav from '@/components/SiteNav'
 import HeroSection from '@/components/HeroSection'
@@ -49,11 +49,11 @@ function StudioNotConfigured() {
 }
 
 export default async function Page() {
-  const [info, menuByCategory, team, testimonials] = await Promise.all([
+  const [info, menuByCategory, team, reviewData] = await Promise.all([
     fetchRestaurantInfo(),
     fetchMenuByCategory(),
     fetchTeamMembers(),
-    fetchTestimonials(),
+    fetchCombinedReviews(),
   ])
 
   if (!info) return <StudioNotConfigured />
@@ -85,7 +85,11 @@ export default async function Page() {
           <GallerySection images={info.galleryImages} />
         )}
 
-        <TestimonialsSection testimonials={testimonials} />
+        <TestimonialsSection 
+          reviews={reviewData.reviews} 
+          googleRating={reviewData.googleRating}
+          totalCount={reviewData.totalCount}
+        />
 
         <SizzleDivider intensity="subtle" />
 

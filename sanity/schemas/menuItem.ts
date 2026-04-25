@@ -7,6 +7,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   wings:      'Buffalo Wild Wings',
   gyro:       'Gyro Specials',
   appetizers: 'Appetizers & Drinks',
+  offers:     'Offers & Deals',
 }
 
 export default defineType({
@@ -35,6 +36,7 @@ export default defineType({
       type: 'string',
       options: {
         list: [
+          { title: 'Offers & Deals',      value: 'offers'     },
           { title: 'Lamb Specials',       value: 'lamb'       },
           { title: 'Chicken Specials',    value: 'chicken'    },
           { title: 'Family Packages',     value: 'family'     },

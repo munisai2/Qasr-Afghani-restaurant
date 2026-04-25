@@ -57,6 +57,15 @@ export default defineConfig({
                   .apiVersion(defaultApiVersion)
                   .filter('_type == "cateringPlan"')
               ),
+            // Promo Codes
+            S.listItem()
+              .title('🎟️ Promo Codes')
+              .child(
+                S.documentList()
+                  .title('Promo Codes')
+                  .apiVersion(defaultApiVersion)
+                  .filter('_type == "promoCode"')
+              ),
             // Testimonials
             S.listItem()
               .title('⭐ Customer Reviews')

@@ -8,8 +8,9 @@ import { format, parseISO } from 'date-fns'
 interface SavedOrder {
   orderId: string
   items: Array<{ id: string; name: string; quantity: number; price: number; specialInstructions?: string }>
-  orderType: 'pickup' | 'dine-in'
+  orderType: 'pickup' | 'pickup-scheduled' | 'dine-in' | 'reservation'
   tableNumber?: string
+  guestCount?: number
   subtotal: number
   tax: number
   total: number
@@ -18,6 +19,8 @@ interface SavedOrder {
   placedAt: string
   estimatedTime?: number
   scheduledTime?: string | null
+  appliedPromoCode?: string | null
+  promoDiscountAmount?: number
 }
 
 export default function OrderConfirmationPage() {
@@ -46,7 +49,7 @@ export default function OrderConfirmationPage() {
     hour: 'numeric', minute: '2-digit', hour12: true,
   })
 
-  const isDineIn = order.orderType === 'dine-in'
+  const isDineIn = order.orderType === 'dine-in' || order.orderType === 'reservation'
 
   return (
     <div className="min-h-screen bg-palace-black flex flex-col items-center justify-center px-6 py-20 text-center relative overflow-hidden">
@@ -103,7 +106,7 @@ export default function OrderConfirmationPage() {
             <>
               {isDineIn ? (
                 <div className="space-y-4">
-                  <p className="font-display text-2xl text-cream/80">Table {order.tableNumber}</p>
+                  <p className="font-display text-2xl text-cream/80">Table {order.tableNumber || '...'} ({order.guestCount ?? 1} guests)</p>
                   <p className="font-body text-sm text-white/50 leading-relaxed max-w-sm mx-auto">
                     Your order is placed! Our team will bring your food to your table as soon as it is ready.
                   </p>
@@ -165,6 +168,9 @@ export default function OrderConfirmationPage() {
                 <div className="border-t border-palace-stone/50 pt-2 mt-2 space-y-1">
                   <div className="flex justify-between"><span className="font-body text-xs text-white/40">Subtotal</span><span className="font-body text-xs text-white/70">${order.subtotal.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span className="font-body text-xs text-white/40">Tax</span><span className="font-body text-xs text-white/70">${order.tax.toFixed(2)}</span></div>
+                  {order.appliedPromoCode && (
+                    <div className="flex justify-between"><span className="font-body text-xs text-green-400">Promo ({order.appliedPromoCode})</span><span className="font-body text-xs text-green-400">−${order.promoDiscountAmount?.toFixed(2)}</span></div>
+                  )}
                   <div className="flex justify-between"><span className="font-body text-xs text-white/40">{isDineIn ? 'Service' : 'Pickup'}</span><span className="font-body text-xs text-gold">{isDineIn ? 'AT TABLE' : 'FREE'}</span></div>
                   <div className="border-t border-palace-stone/50 pt-1"><div className="flex justify-between"><span className="font-display text-sm text-white">Total</span><span className="font-display text-sm text-gold">${order.total.toFixed(2)}</span></div></div>
                 </div>
@@ -176,7 +182,7 @@ export default function OrderConfirmationPage() {
                 )}
                 {isDineIn && (
                   <div className="pt-2 border-t border-palace-stone/30">
-                    <p className="font-body text-xs text-gold tracking-widest uppercase">Table {order.tableNumber}</p>
+                    <p className="font-body text-xs text-gold tracking-widest uppercase">Table {order.tableNumber || '...'} ({order.guestCount ?? 1} guests)</p>
                   </div>
                 )}
                 <p className="font-body text-[10px] text-white/20 pt-2">Placed at {placedTime}</p>

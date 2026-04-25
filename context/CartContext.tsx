@@ -21,11 +21,15 @@ export interface CartItem {
 }
 
 interface CartState {
-  items:         CartItem[]
-  isOpen:        boolean
-  orderType:     'pickup' | 'dine-in'
-  scheduledTime: string | null   // ISO datetime string or null
-  tableNumber:   string
+  items:               CartItem[]
+  isOpen:              boolean
+  orderType:           'pickup' | 'pickup-scheduled' | 'dine-in' | 'reservation'
+  isScheduled:         boolean
+  scheduledTime:       string | null   // ISO datetime string or null
+  guestCount:          number
+  tableNumber:         string
+  appliedPromoCode:    string | null
+  promoDiscountAmount: number
 }
 
 type CartAction =
@@ -38,16 +42,30 @@ type CartAction =
   | { type: 'CLEAR_CART' }
   | { type: 'OPEN_CART' }
   | { type: 'CLOSE_CART' }
-  | { type: 'SET_ORDER_TYPE'; payload: 'pickup' | 'dine-in' }
-  | { type: 'SET_SCHEDULED_TIME'; payload: string | null }
-  | { type: 'SET_TABLE_NUMBER'; payload: string }
-  | { type: 'HYDRATE'; payload: { items: CartItem[]; orderType?: 'pickup' | 'dine-in'; scheduledTime?: string | null; tableNumber?: string } }
+  | { type: 'SET_ORDER_TYPE';      payload: CartState['orderType'] }
+  | { type: 'SET_IS_SCHEDULED';    payload: boolean }
+  | { type: 'SET_SCHEDULED_TIME';  payload: string | null }
+  | { type: 'SET_GUEST_COUNT';     payload: number }
+  | { type: 'SET_TABLE_NUMBER';    payload: string }
+  | { type: 'APPLY_PROMO';         payload: { code: string; discount: number } }
+  | { type: 'REMOVE_PROMO' }
+  | { type: 'HYDRATE'; payload: Partial<CartState> }
 
 // ═══════════════════════════════════════
 // REDUCER
 // ═══════════════════════════════════════
 
-const initialState: CartState = { items: [], isOpen: false, orderType: 'pickup', scheduledTime: null, tableNumber: '' }
+const initialState: CartState = { 
+  items: [], 
+  isOpen: false, 
+  orderType: 'pickup', 
+  isScheduled: false,
+  scheduledTime: null, 
+  guestCount: 1,
+  tableNumber: '',
+  appliedPromoCode: null,
+  promoDiscountAmount: 0
+}
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -84,18 +102,24 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case 'CLOSE_CART':
       return { ...state, isOpen: false }
     case 'SET_ORDER_TYPE':
-      return { ...state, orderType: action.payload, scheduledTime: action.payload === 'dine-in' ? null : state.scheduledTime }
+      return { ...state, orderType: action.payload }
+    case 'SET_IS_SCHEDULED':
+      return { ...state, isScheduled: action.payload }
     case 'SET_SCHEDULED_TIME':
       return { ...state, scheduledTime: action.payload }
+    case 'SET_GUEST_COUNT':
+      return { ...state, guestCount: action.payload }
     case 'SET_TABLE_NUMBER':
       return { ...state, tableNumber: action.payload }
+    case 'APPLY_PROMO':
+      return { ...state, appliedPromoCode: action.payload.code, promoDiscountAmount: action.payload.discount }
+    case 'REMOVE_PROMO':
+      return { ...state, appliedPromoCode: null, promoDiscountAmount: 0 }
     case 'HYDRATE':
       return { 
         ...state, 
-        items: action.payload.items, 
-        orderType: action.payload.orderType || 'pickup',
-        scheduledTime: action.payload.scheduledTime || null,
-        tableNumber: action.payload.tableNumber || ''
+        ...action.payload,
+        items: action.payload.items || [],
       }
     default:
       return state
@@ -119,9 +143,20 @@ interface CartContextValue {
   removeItem: (id: string) => void
   incrementItem: (id: string) => void
   decrementItem: (id: string) => void
-  setOrderType: (type: 'pickup' | 'dine-in') => void
+  orderType: CartState['orderType']
+  isScheduled: boolean
+  scheduledTime: string | null
+  guestCount: number
+  tableNumber: string
+  appliedPromoCode: string | null
+  promoDiscountAmount: number
+  setOrderType: (type: CartState['orderType']) => void
+  setIsScheduled: (val: boolean) => void
   setScheduledTime: (time: string | null) => void
+  setGuestCount: (num: number) => void
   setTableNumber: (num: string) => void
+  applyPromo: (code: string, discount: number) => void
+  removePromo: () => void
   clearCart: () => void
   openCart: () => void
   closeCart: () => void
@@ -151,8 +186,12 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
             payload: {
               items: parsed.items,
               orderType: parsed.orderType,
+              isScheduled: parsed.isScheduled,
               scheduledTime: parsed.scheduledTime,
-              tableNumber: parsed.tableNumber
+              guestCount: parsed.guestCount ?? 1,
+              tableNumber: parsed.tableNumber ?? '',
+              appliedPromoCode: parsed.appliedPromoCode ?? null,
+              promoDiscountAmount: parsed.promoDiscountAmount ?? 0
             }
           })
         }
@@ -164,10 +203,14 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
     sessionStorage.setItem('qasr-cart', JSON.stringify({ 
       items: state.items,
       orderType: state.orderType,
+      isScheduled: state.isScheduled,
       scheduledTime: state.scheduledTime,
-      tableNumber: state.tableNumber
+      guestCount: state.guestCount,
+      tableNumber: state.tableNumber,
+      appliedPromoCode: state.appliedPromoCode,
+      promoDiscountAmount: state.promoDiscountAmount
     }))
-  }, [state.items, state.orderType, state.scheduledTime, state.tableNumber])
+  }, [state.items, state.orderType, state.isScheduled, state.scheduledTime, state.guestCount, state.tableNumber, state.appliedPromoCode, state.promoDiscountAmount])
 
   useEffect(() => {
     document.body.style.overflow = state.isOpen ? 'hidden' : ''
@@ -188,16 +231,20 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
   const itemCount = useMemo(() => state.items.reduce((s, i) => s + i.quantity, 0), [state.items])
   const subtotal = useMemo(() => state.items.reduce((s, i) => s + i.price * i.quantity, 0), [state.items])
   const tax = subtotal * 0.08
-  const total = subtotal + tax
+  const total = subtotal + tax - state.promoDiscountAmount
 
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => dispatch({ type: 'ADD_ITEM', payload: { ...item, quantity: 1 } }), [])
   const addItemWithQty = useCallback((item: Omit<CartItem, 'quantity'>, qty: number) => dispatch({ type: 'ADD_ITEM_WITH_QTY', payload: { ...item, quantity: 1, initialQty: qty } }), [])
   const removeItem = useCallback((id: string) => dispatch({ type: 'REMOVE_ITEM', payload: { id } }), [])
   const incrementItem = useCallback((id: string) => dispatch({ type: 'INCREMENT', payload: { id } }), [])
   const decrementItem = useCallback((id: string) => dispatch({ type: 'DECREMENT', payload: { id } }), [])
-  const setOrderType = useCallback((type: 'pickup' | 'dine-in') => dispatch({ type: 'SET_ORDER_TYPE', payload: type }), [])
+  const setOrderType = useCallback((type: CartState['orderType']) => dispatch({ type: 'SET_ORDER_TYPE', payload: type }), [])
+  const setIsScheduled = useCallback((val: boolean) => dispatch({ type: 'SET_IS_SCHEDULED', payload: val }), [])
   const setScheduledTime = useCallback((time: string | null) => dispatch({ type: 'SET_SCHEDULED_TIME', payload: time }), [])
+  const setGuestCount = useCallback((num: number) => dispatch({ type: 'SET_GUEST_COUNT', payload: num }), [])
   const setTableNumber = useCallback((num: string) => dispatch({ type: 'SET_TABLE_NUMBER', payload: num }), [])
+  const applyPromo = useCallback((code: string, discount: number) => dispatch({ type: 'APPLY_PROMO', payload: { code, discount } }), [])
+  const removePromo = useCallback(() => dispatch({ type: 'REMOVE_PROMO' }), [])
   const clearCart = useCallback(() => dispatch({ type: 'CLEAR_CART' }), [])
   const openCart = useCallback(() => dispatch({ type: 'OPEN_CART' }), [])
   const closeCart = useCallback(() => dispatch({ type: 'CLOSE_CART' }), [])
@@ -206,13 +253,17 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
 
   const value = useMemo(() => ({
     state, dispatch, itemCount, subtotal, tax, total, storeStatus,
+    orderType: state.orderType, isScheduled: state.isScheduled,
+    scheduledTime: state.scheduledTime, guestCount: state.guestCount,
+    tableNumber: state.tableNumber, appliedPromoCode: state.appliedPromoCode,
+    promoDiscountAmount: state.promoDiscountAmount,
     addItem, addItemWithQty, removeItem, incrementItem, decrementItem,
-    setOrderType, setScheduledTime, setTableNumber,
-    clearCart, openCart, closeCart, isInCart, getItemQuantity,
+    setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber,
+    applyPromo, removePromo, clearCart, openCart, closeCart, isInCart, getItemQuantity,
   }), [state, itemCount, subtotal, tax, total, storeStatus,
     addItem, addItemWithQty, removeItem, incrementItem, decrementItem,
-    setOrderType, setScheduledTime, setTableNumber,
-    clearCart, openCart, closeCart, isInCart, getItemQuantity])
+    setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber,
+    applyPromo, removePromo, clearCart, openCart, closeCart, isInCart, getItemQuantity])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

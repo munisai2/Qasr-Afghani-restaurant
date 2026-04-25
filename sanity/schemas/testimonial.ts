@@ -13,10 +13,16 @@ export default defineType({
         list: [
           { title: 'Google',   value: 'google'   },
           { title: 'Yelp',     value: 'yelp'     },
-          { title: 'Facebook', value: 'facebook' },
           { title: 'Direct',   value: 'direct'   },
+          { title: 'Facebook', value: 'facebook' },
         ],
       },
+      initialValue: 'google',
+    }),
+    defineField({
+      name:  'googleReviewUrl',
+      title: 'Link to Original Review (optional)',
+      type:  'url',
     }),
     defineField({
       name: 'rating', title: 'Star Rating (1–5)', type: 'number',

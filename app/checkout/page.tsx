@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { useCart } from '@/context/CartContext'
 import { AnalyticsEvents } from '@/lib/analytics'
 import MagneticButton from '@/components/MagneticButton'
 import { calculatePrepTime } from '@/lib/prepTime'
+import { validatePromoCode } from '@/lib/promo'
 import { format, addDays, startOfToday, setHours, setMinutes, isBefore, isAfter, parseISO } from 'date-fns'
 import { parseTimeToMinutes, parseDayRange } from '@/lib/storeHours'
 import type { OpeningHours } from '@/types/sanity'
@@ -26,10 +27,15 @@ interface CheckoutForm {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { state, itemCount, subtotal, tax, total, storeStatus, openCart, clearCart, setOrderType, setScheduledTime, setTableNumber } = useCart()
-  const [isScheduled, setIsScheduled] = useState(false)
+  const { state, itemCount, subtotal, tax, total, storeStatus, openCart, clearCart, setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber } = useCart()
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [openingHours, setOpeningHours] = useState<OpeningHours[]>([])
+  const [maxPartySize, setMaxPartySize] = useState(20)
+  const [totalTables, setTotalTables] = useState(16)
+  const [info, setInfo] = useState<any>(null)
+  const [promoInput, setPromoInput] = useState('')
+  const [promoError, setPromoError] = useState<string | null>(null)
+  const [showPromoInput, setShowPromoInput] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [checkoutError, setCheckoutError] = useState(false)
@@ -45,23 +51,23 @@ export default function CheckoutPage() {
     AnalyticsEvents.beginCheckout(itemCount, total)
 
     // Fetch latest status and phone
-    fetch('/api/restaurant-info')
+    fetch('/api/restaurant-info', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (data.restaurantStatus) setStatus(data.restaurantStatus)
         if (data.phone) setRestaurantPhone(data.phone)
         if (data.busyExtraMinutes) setBusyExtraMinutes(data.busyExtraMinutes)
         if (data.openingHours) setOpeningHours(data.openingHours)
+        if (data.maxPartySize) setMaxPartySize(data.maxPartySize)
+        if (data.totalTables) setTotalTables(data.totalTables)
+        setInfo(data)
       })
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Sync isScheduled with state.scheduledTime on mount or type change
-  useEffect(() => {
-    if (state.scheduledTime) setIsScheduled(true)
-    if (state.orderType === 'dine-in') setIsScheduled(false)
-  }, [state.orderType, state.scheduledTime])
+  const isBasePickup = state.orderType === 'pickup' || state.orderType === 'pickup-scheduled'
+  const isBaseDineIn = state.orderType === 'dine-in' || state.orderType === 'reservation'
 
   const availableDates = [
     startOfToday(),
@@ -118,9 +124,29 @@ export default function CheckoutPage() {
     busyExtraMinutes
   )
 
+  const { applyPromo, removePromo } = useCart()
+
+  const handleApplyPromo = () => {
+    if (!info) return
+    const result = validatePromoCode(promoInput, info?.activePromos || [], subtotal, state.items)
+    if (result.valid) {
+      applyPromo(promoInput.toUpperCase(), result.discount)
+      setPromoError(null)
+      setShowPromoInput(false)
+    } else {
+      setPromoError(result.error || 'Invalid code')
+    }
+  }
+
+  const handleRemovePromo = () => {
+    removePromo()
+    setPromoInput('')
+    setPromoError(null)
+  }
+
   const onSubmit = async (data: CheckoutForm) => {
-    if (state.orderType === 'pickup' && isScheduled && !state.scheduledTime) {
-      setFormError('Please select a pickup time')
+    if ((state.orderType === 'pickup-scheduled' || state.orderType === 'reservation') && !state.scheduledTime) {
+      setFormError('Please select a time')
       return
     }
 
@@ -132,7 +158,10 @@ export default function CheckoutPage() {
         orderId: generateOrderId(),
         items: [...state.items],
         orderType: state.orderType,
-        tableNumber: state.orderType === 'dine-in' ? state.tableNumber : undefined,
+        tableNumber: (state.orderType === 'dine-in' || state.orderType === 'reservation') ? state.tableNumber : undefined,
+        guestCount: state.guestCount,
+        appliedPromoCode: state.appliedPromoCode,
+        promoDiscountAmount: state.promoDiscountAmount,
         subtotal,
         tax,
         total,
@@ -155,7 +184,10 @@ export default function CheckoutPage() {
         specialRequests: data.specialRequests || undefined,
         placedAt: order.placedAt,
         orderType: state.orderType,
-        tableNumber: state.orderType === 'dine-in' ? state.tableNumber : undefined,
+        tableNumber: (state.orderType === 'dine-in' || state.orderType === 'reservation') ? state.tableNumber : undefined,
+        guestCount: state.guestCount,
+        promoCode: state.appliedPromoCode,
+        promoDiscount: state.promoDiscountAmount,
         estimatedTime: prepTimeResult.minutes,
         scheduledTime: state.scheduledTime ?? null,
       }
@@ -194,6 +226,7 @@ export default function CheckoutPage() {
             estimatedTime: prepTimeResult.minutes,
             orderType:     state.orderType,
             tableNumber:   state.tableNumber,
+            guestCount:    state.guestCount,
             scheduledTime: state.scheduledTime,
           }
         })
@@ -312,8 +345,8 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => setOrderType('pickup')}
-                  className={`relative p-5 border text-left transition-all duration-300 ${state.orderType === 'pickup' ? 'bg-gold/10 border-gold' : 'bg-palace-smoke border-palace-stone opacity-60'}`}
+                  onClick={() => { setOrderType('pickup'); setIsScheduled(false); setScheduledTime(null); }}
+                  className={`relative p-5 border text-left transition-all duration-300 ${isBasePickup ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)] text-cream' : 'bg-palace-smoke border-palace-stone opacity-60 hover:opacity-100 hover:border-white/20'}`}
                 >
                   <div className="flex items-start justify-between">
                     <span className="text-3xl">🏪</span>
@@ -325,8 +358,8 @@ export default function CheckoutPage() {
 
                 <button
                   type="button"
-                  onClick={() => setOrderType('dine-in')}
-                  className={`relative p-5 border text-left transition-all duration-300 ${state.orderType === 'dine-in' ? 'bg-gold/10 border-gold' : 'bg-palace-smoke border-palace-stone opacity-60'}`}
+                  onClick={() => { setOrderType('dine-in'); setIsScheduled(false); setScheduledTime(null); }}
+                  className={`relative p-5 border text-left transition-all duration-300 ${isBaseDineIn ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)] text-cream' : 'bg-palace-smoke border-palace-stone opacity-60 hover:opacity-100 hover:border-white/20'}`}
                 >
                   <div className="flex items-start justify-between">
                     <span className="text-3xl">🍽️</span>
@@ -337,100 +370,118 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {state.orderType === 'pickup' && (
-                <div className="mt-8 space-y-6">
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => { setIsScheduled(false); setScheduledTime(null); }}
-                      className={`flex-1 py-3 border font-body text-xs tracking-widest uppercase transition-all ${!isScheduled ? 'bg-gold/10 border-gold text-gold' : 'border-palace-stone text-white/40'}`}
-                    >
-                      Order Now
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsScheduled(true)}
-                      className={`flex-1 py-3 border font-body text-xs tracking-widest uppercase transition-all ${isScheduled ? 'bg-gold/10 border-gold text-gold' : 'border-palace-stone text-white/40'}`}
-                    >
-                      Schedule for Later
-                    </button>
+              {/* Timing Sub-options */}
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsScheduled(false)
+                    setScheduledTime(null)
+                    setOrderType(isBasePickup ? 'pickup' : 'dine-in')
+                  }}
+                  className={`flex-1 py-3 border font-body text-xs tracking-widest uppercase transition-all ${!state.isScheduled ? 'bg-gold/10 border-gold text-gold' : 'border-palace-stone text-white/40 hover:border-white/20'}`}
+                >
+                  {isBasePickup ? 'Order Now' : 'Arrive Now'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsScheduled(true)
+                    setOrderType(isBasePickup ? 'pickup-scheduled' : 'reservation')
+                  }}
+                  className={`flex-1 py-3 border font-body text-xs tracking-widest uppercase transition-all ${state.isScheduled ? 'bg-gold/10 border-gold text-gold' : 'border-palace-stone text-white/40 hover:border-white/20'}`}
+                >
+                  {isBasePickup ? 'Schedule for Later' : 'Reserve for Later'}
+                </button>
+              </div>
+
+              {state.isScheduled && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 mt-6">
+                  <div>
+                    <label className="font-body text-[10px] tracking-widest uppercase text-white/30 mb-3 block">Select Date</label>
+                    <div className="flex flex-wrap gap-2">
+                      {availableDates.map((date, i) => {
+                        const isSelected = selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => { setSelectedDate(date); setScheduledTime(null); }}
+                            className={`px-4 py-2 border font-body text-xs transition-all ${isSelected ? 'border-gold bg-gold/10 text-gold' : 'border-palace-stone text-white/40 hover:border-white/20'}`}
+                          >
+                            {i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(date, 'EEE MMM d')}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
 
-                  {isScheduled && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                      <div>
-                        <label className="font-body text-[10px] tracking-widest uppercase text-white/30 mb-3 block">Select Date</label>
-                        <div className="flex flex-wrap gap-2">
-                          {availableDates.map((date, i) => {
-                            const isSelected = selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                  {selectedDate && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                      <label className="font-body text-[10px] tracking-widest uppercase text-white/30 mb-3 block">Select Time</label>
+                      {selectedDateSlots.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                          {selectedDateSlots.map((slot, i) => {
+                            const isSelected = state.scheduledTime === slot.toISOString()
                             return (
                               <button
                                 key={i}
                                 type="button"
-                                onClick={() => { setSelectedDate(date); setScheduledTime(null); }}
-                                className={`px-4 py-2 border font-body text-xs transition-all ${isSelected ? 'border-gold bg-gold/10 text-gold' : 'border-palace-stone text-white/40 hover:border-white/20'}`}
+                                onClick={() => { setScheduledTime(slot.toISOString()); setFormError(null); }}
+                                className={`py-2 border font-body text-[11px] transition-all ${isSelected ? 'border-gold bg-gold/10 text-gold' : 'border-palace-stone text-white/40 hover:border-white/20'}`}
                               >
-                                {i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(date, 'EEE MMM d')}
+                                {format(slot, 'h:mm a')}
                               </button>
                             )
                           })}
                         </div>
-                      </div>
-
-                      {selectedDate && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                          <label className="font-body text-[10px] tracking-widest uppercase text-white/30 mb-3 block">Select Time</label>
-                          {selectedDateSlots.length > 0 ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                              {selectedDateSlots.map((slot, i) => {
-                                const isSelected = state.scheduledTime === slot.toISOString()
-                                return (
-                                  <button
-                                    key={i}
-                                    type="button"
-                                    onClick={() => { setScheduledTime(slot.toISOString()); setFormError(null); }}
-                                    className={`py-2 border font-body text-[11px] transition-all ${isSelected ? 'border-gold bg-gold/10 text-gold' : 'border-palace-stone text-white/40 hover:border-white/20'}`}
-                                  >
-                                    {format(slot, 'h:mm a')}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          ) : (
-                            <p className="font-body text-xs text-red-400/60 italic">No available times for this date.</p>
-                          )}
-                        </motion.div>
-                      )}
-
-                      {state.scheduledTime && (
-                        <div className="bg-gold/5 border border-gold/20 px-4 py-3">
-                          <p className="font-body text-sm text-gold">
-                            ✦ Your order will be ready at <span className="font-bold">{format(parseISO(state.scheduledTime), 'h:mm a')}</span> on <span className="font-bold">{format(parseISO(state.scheduledTime), 'EEEE, MMM d')}</span>
-                          </p>
-                        </div>
-                      )}
-                      
-                      {formError && (
-                        <p className="font-body text-xs text-red-400 bg-red-400/10 border border-red-400/20 px-3 py-2">{formError}</p>
+                      ) : (
+                        <p className="font-body text-xs text-red-400/60 italic">No available times for this date.</p>
                       )}
                     </motion.div>
                   )}
-                </div>
+
+                  {state.scheduledTime && (
+                    <div className="bg-gold/5 border border-gold/20 px-4 py-3">
+                      <p className="font-body text-sm text-gold">
+                        ✦ {isBasePickup ? 'Your order will be ready at' : 'Arriving at'} <span className="font-bold">{format(parseISO(state.scheduledTime), 'h:mm a')}</span> on <span className="font-bold">{format(parseISO(state.scheduledTime), 'EEEE, MMM d')}</span>
+                      </p>
+                    </div>
+                  )}
+                  
+                  {formError && (
+                    <p className="font-body text-xs text-red-400 bg-red-400/10 border border-red-400/20 px-3 py-2">{formError}</p>
+                  )}
+                </motion.div>
               )}
 
-              {state.orderType === 'dine-in' && (
-                <div className="mt-4">
-                  <label className="font-body text-xs tracking-widest uppercase text-white/40 mb-1 block">Table Number</label>
-                  <input
-                    type="number"
-                    placeholder="Table number"
-                    value={state.tableNumber}
-                    onChange={(e) => setTableNumber(e.target.value)}
-                    className="form-input"
-                    required
-                  />
-                </div>
+              {isBaseDineIn && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 space-y-6">
+                  <div className="flex items-center justify-between border-b border-palace-stone pb-6">
+                    <label className="font-body text-xs tracking-widest uppercase text-white/40">Number of Guests</label>
+                    <div className="flex items-center gap-4 bg-palace-smoke border border-palace-stone px-3 py-2">
+                      <button type="button" onClick={() => setGuestCount(Math.max(1, (state.guestCount || 1) - 1))} className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-gold text-lg">−</button>
+                      <span className="font-display text-lg w-6 text-center text-white">{state.guestCount || 1}</span>
+                      <button type="button" onClick={() => setGuestCount(Math.min(maxPartySize, (state.guestCount || 1) + 1))} className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-gold text-lg">+</button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="font-body text-xs tracking-widest uppercase text-white/40 mb-3 block">Table Number (Optional)</label>
+                    <input
+                      type="number"
+                      placeholder={`Table no. (1–${totalTables})`}
+                      value={state.tableNumber}
+                      onChange={(e) => setTableNumber(e.target.value)}
+                      min="1" max={totalTables}
+                      className="form-input"
+                    />
+                    <p className="font-body text-[10px] italic text-white/20 mt-2">Leave blank if you do not know your table yet.</p>
+                  </div>
+                </motion.div>
               )}
+
+
             </div>
 
             {/* 02 · Your Details */}
@@ -465,14 +516,16 @@ export default function CheckoutPage() {
                 <MagneticButton type="submit" disabled={isSubmitting || (state.orderType === 'dine-in' && !state.tableNumber)}
                   className="bg-gold text-palace-black w-full py-5 mt-8 rounded-none font-body font-bold text-sm tracking-[0.25em] uppercase flex items-center justify-center gap-3 disabled:opacity-70 hover:shadow-[0_0_40px_rgba(201,168,76,0.5)] active:scale-[0.98] transition-all duration-300"
                 >
-                  {isSubmitting ? <><span className="w-5 h-5 border-2 border-palace-black/30 border-t-palace-black rounded-full animate-spin" /> Placing your order...</> : <>Place {state.orderType === 'dine-in' ? 'Dine In' : 'Pickup'} Order  ✦  ${total.toFixed(2)}</>}
+                  {isSubmitting ? <><span className="w-5 h-5 border-2 border-palace-black/30 border-t-palace-black rounded-full animate-spin" /> Placing your order...</> : <>Place {state.orderType === 'dine-in' || state.orderType === 'reservation' ? 'Dine In' : 'Pickup'} Order  ✦  ${total.toFixed(2)}</>}
                 </MagneticButton>
               <p className="font-body text-xs text-white/25 text-center mt-3">
-                  {state.orderType === 'pickup' 
+                  {state.orderType === 'pickup' || state.orderType === 'pickup-scheduled'
                     ? (state.scheduledTime 
                         ? `📅 Scheduled for ${format(parseISO(state.scheduledTime), 'EEEE, MMM d @ h:mm a')}`
                         : '🏪 Your order will be ready for pickup in 25–35 minutes')
-                    : `Our team will bring your order to Table ${state.tableNumber || '...'}`}
+                    : (state.scheduledTime 
+                        ? `📅 Reservation for ${state.guestCount} guests at ${format(parseISO(state.scheduledTime), 'EEEE, MMM d @ h:mm a')}`
+                        : `Our team will bring your order to Table ${state.tableNumber || '...'} for ${state.guestCount} guests`)}
                 </p>
               </>
             ) : (
@@ -508,12 +561,53 @@ export default function CheckoutPage() {
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between"><span className="font-body text-xs text-white/40">Subtotal</span><span className="font-body text-xs text-white/70">${subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span className="font-body text-xs text-white/40">Tax (8%)</span><span className="font-body text-xs text-white/70">${tax.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="font-body text-xs text-white/40">{state.orderType === 'dine-in' ? 'Service' : 'Pickup'}</span><span className="font-body text-xs text-gold">{state.orderType === 'dine-in' ? 'AT TABLE' : 'FREE'}</span></div>
+                {state.appliedPromoCode && (
+                  <div className="flex justify-between"><span className="font-body text-xs text-green-400 tracking-wide">Promo ({state.appliedPromoCode})</span><span className="font-body text-xs text-green-400">−${state.promoDiscountAmount.toFixed(2)}</span></div>
+                )}
+                <div className="flex justify-between"><span className="font-body text-xs text-white/40">{state.orderType === 'dine-in' || state.orderType === 'reservation' ? 'Service' : 'Pickup'}</span><span className="font-body text-xs text-gold">{state.orderType === 'dine-in' || state.orderType === 'reservation' ? 'AT TABLE' : 'FREE'}</span></div>
                 <div className="border-t border-palace-stone/50 my-2" />
                 <div className="flex justify-between"><span className="font-display text-base text-white">Total</span><span className="font-display text-base text-gold">${total.toFixed(2)}</span></div>
               </div>
-              <span className="inline-block border border-gold/30 text-gold text-xs px-3 py-1 font-body tracking-wide mt-4">
-                {state.orderType === 'pickup' ? '🏪 Pickup Order' : `🍽️ Dine In — Table ${state.tableNumber || '...'}`}
+
+              {/* Promo Code UI */}
+              {(info?.activePromos && info.activePromos.length > 0) && (
+                <div className="mt-6 border-t border-palace-stone/40 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowPromoInput(!showPromoInput)}
+                    className="font-body text-xs text-gold flex items-center justify-between w-full uppercase tracking-widest"
+                  >
+                    ✦ Have a promo code?
+                    <span>{showPromoInput ? '−' : '+'}</span>
+                  </button>
+                  <AnimatePresence>
+                    {showPromoInput && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                        <div className="flex gap-2 mt-4">
+                          <input
+                            type="text"
+                            value={promoInput}
+                            onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                            placeholder="Enter code..."
+                            className={`flex-1 bg-transparent border border-palace-stone px-3 py-2 text-white font-body text-sm uppercase outline-none focus:border-gold transition-colors ${promoError ? 'border-red-500' : ''}`}
+                            disabled={state.appliedPromoCode !== null}
+                          />
+                          {state.appliedPromoCode ? (
+                            <button type="button" onClick={handleRemovePromo} className="px-4 py-2 bg-palace-stone text-white font-body text-xs uppercase tracking-widest hover:bg-red-900 transition-colors">Remove</button>
+                          ) : (
+                            <button type="button" onClick={handleApplyPromo} disabled={!promoInput} className="px-4 py-2 bg-gold text-palace-black font-body text-xs uppercase tracking-widest disabled:opacity-50 hover:bg-gold/80 transition-colors">Apply</button>
+                          )}
+                        </div>
+                        {promoError && <p className="text-red-400 font-body text-[10px] mt-2">{promoError}</p>}
+                        {state.appliedPromoCode && <p className="text-green-400 font-body text-[10px] mt-2 uppercase tracking-wide">Promo {state.appliedPromoCode} applied!</p>}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              <span className="inline-block border border-gold/30 text-gold text-xs px-3 py-1 font-body tracking-wide mt-6">
+                {state.orderType === 'pickup' || state.orderType === 'pickup-scheduled' ? '🏪 Pickup Order' : `🍽️ Dine In — Table ${state.tableNumber || '...'} (${state.guestCount} guests)`}
               </span>
               {state.scheduledTime && (
                 <div className="mt-2 text-gold font-body text-[10px] tracking-widest uppercase">

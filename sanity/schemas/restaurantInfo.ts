@@ -12,6 +12,23 @@ export default defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name:        'totalTables',
+      title:       'Total Number of Tables',
+      type:        'number',
+      description: 'Used as a hint on the dine-in form. ' +
+                   'e.g. if 16 tables, form shows ' +
+                   '"Tables 1–16 available".',
+      initialValue: 16,
+    }),
+    defineField({
+      name:        'maxPartySize',
+      title:       'Maximum Party Size per Booking',
+      type:        'number',
+      description: 'Largest group the restaurant can seat.',
+      initialValue: 20,
+    }),
+
+    defineField({
       name: 'tagline',
       title: 'Tagline / Hero Subtitle',
       type: 'string',

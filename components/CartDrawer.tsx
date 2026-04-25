@@ -1,18 +1,113 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
+import { client } from '@/sanity.client'
+import { validatePromoCode } from '@/lib/promo'
+import type { RestaurantInfo, PromoCode } from '@/types/sanity'
+import { format, addDays, startOfToday, setHours, setMinutes, isBefore, isAfter, parseISO } from 'date-fns'
+import { parseTimeToMinutes, parseDayRange } from '@/lib/storeHours'
 
 export default function CartDrawer() {
   const router = useRouter()
   const {
     state, itemCount, subtotal, tax, total, storeStatus,
     incrementItem, decrementItem, removeItem, closeCart, dispatch,
-    setOrderType, setTableNumber,
+    setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber,
+    applyPromo, removePromo
   } = useCart()
+
+  const [info, setInfo] = useState<(RestaurantInfo & { activePromos?: PromoCode[] }) | null>(null)
+  const [promoInput, setPromoInput] = useState('')
+  const [promoError, setPromoError] = useState<string | null>(null)
+  const [isPromoOpen, setIsPromoOpen] = useState(false)
+  const [shake, setShake] = useState(false)
+
+  // Scheduling states
+  const [availableDates, setAvailableDates] = useState<Date[]>([])
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDateSlots, setSelectedDateSlots] = useState<Date[]>([])
+
+  useEffect(() => {
+    async function loadInfo() {
+      try {
+        const res = await fetch('/api/restaurant-info', { cache: 'no-store' })
+        const data = await res.json()
+        setInfo(data)
+      } catch (e) {
+        console.error('Failed to load restaurant info', e)
+      }
+    }
+    loadInfo()
+  }, [])
+
+  useEffect(() => {
+    const today = startOfToday()
+    setAvailableDates([today, addDays(today, 1), addDays(today, 2)])
+    if (state.scheduledTime) {
+      setSelectedDate(startOfToday()) // Simplification, would ideally parse the date
+    }
+  }, [state.scheduledTime])
+
+  useEffect(() => {
+    if (!selectedDate || !info?.openingHours) {
+      setSelectedDateSlots([])
+      return
+    }
+
+    const dayIndex = selectedDate.getDay()
+    const hoursForDay = info.openingHours.find(h => {
+      const days = parseDayRange(h.days)
+      return days.includes(dayIndex)
+    })
+
+    if (!hoursForDay || hoursForDay.isClosed) {
+      setSelectedDateSlots([])
+      return
+    }
+
+    const [openStr, closeStr] = hoursForDay.hours.split('-').map(s => s.trim())
+    const openMins = parseTimeToMinutes(openStr)
+    const closeMins = parseTimeToMinutes(closeStr)
+
+    const slots: Date[] = []
+    let currentMins = openMins
+
+    while (currentMins <= closeMins - 30) {
+      const h = Math.floor(currentMins / 60)
+      const m = currentMins % 60
+      const slotTime = setMinutes(setHours(selectedDate, h), m)
+      
+      const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+      const bufferTime = new Date(Date.now() + 60 * 60 * 1000)
+
+      if (!isToday || isAfter(slotTime, bufferTime)) {
+        slots.push(slotTime)
+      }
+      currentMins += 30
+    }
+    setSelectedDateSlots(slots)
+  }, [selectedDate, info?.openingHours])
+
+  const handleApplyPromo = () => {
+    if (!info) return
+    const result = validatePromoCode(promoInput, info?.activePromos || [], subtotal, state.items)
+    if (result.valid) {
+      applyPromo(promoInput.toUpperCase(), result.discount)
+      setPromoError(null)
+      setIsPromoOpen(false)
+    } else {
+      setPromoError(result.error || 'Invalid code')
+      setShake(true)
+      setTimeout(() => setShake(false), 500)
+    }
+  }
+
+  const isBasePickup = state.orderType === 'pickup' || state.orderType === 'pickup-scheduled'
+  const isBaseDineIn = state.orderType === 'dine-in' || state.orderType === 'reservation'
 
   return (
     <AnimatePresence>
@@ -38,51 +133,131 @@ export default function CartDrawer() {
             </div>
 
             {/* Order Type Selector */}
-            <div className="flex-shrink-0 px-6 py-4 bg-palace-smoke/50 border-b border-palace-stone">
+            <div className="flex-shrink-0 px-6 py-4 bg-palace-smoke/50 border-b border-palace-stone space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setOrderType('pickup')}
-                  className={`relative p-3 border text-left transition-all duration-300 ${state.orderType === 'pickup' ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'bg-transparent border-white/10 hover:border-white/20 opacity-60 hover:opacity-100'}`}
+                  onClick={() => { setOrderType('pickup'); setIsScheduled(false); setScheduledTime(null); }}
+                  className={`relative p-3 border text-left transition-all duration-300 ${isBasePickup ? 'bg-gold/8 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)] text-cream' : 'bg-transparent border-palace-stone text-cream/40 hover:border-white/20 hover:opacity-100'}`}
                 >
                   <div className="flex items-start justify-between">
-                    <span className="text-xl">🏪</span>
-                    <span className="bg-gold text-[8px] text-palace-black font-bold px-1.5 py-0.5 rounded-full tracking-tighter uppercase">Free</span>
+                    <span className="text-2xl">🏪</span>
                   </div>
-                  <h3 className="font-display text-sm text-white mt-2">Pickup</h3>
-                  <p className="font-body text-[10px] text-white/40">Ready in 25–35 min</p>
-                  {state.orderType === 'pickup' && <motion.div layoutId="active-tick" className="absolute top-2 right-2 text-gold text-xs">✓</motion.div>}
+                  <h3 className="font-display text-base font-light mt-2">Pickup</h3>
+                  {isBasePickup && <motion.div layoutId="active-tick" className="absolute top-2 right-2 text-gold text-xs">✓</motion.div>}
                 </button>
 
                 <button
-                  onClick={() => setOrderType('dine-in')}
-                  className={`relative p-3 border text-left transition-all duration-300 ${state.orderType === 'dine-in' ? 'bg-gold/10 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'bg-transparent border-white/10 hover:border-white/20 opacity-60 hover:opacity-100'}`}
+                  onClick={() => { setOrderType('dine-in'); setIsScheduled(false); setScheduledTime(null); }}
+                  className={`relative p-3 border text-left transition-all duration-300 ${isBaseDineIn ? 'bg-gold/8 border-gold shadow-[0_0_15px_rgba(201,168,76,0.1)] text-cream' : 'bg-transparent border-palace-stone text-cream/40 hover:border-white/20 hover:opacity-100'}`}
                 >
                   <div className="flex items-start justify-between">
-                    <span className="text-xl">🍽️</span>
-                    <span className="bg-gold/20 text-gold text-[8px] font-bold px-1.5 py-0.5 rounded-full tracking-tighter uppercase border border-gold/30">At Table</span>
+                    <span className="text-2xl">🍽️</span>
                   </div>
-                  <h3 className="font-display text-sm text-white mt-2">Dine In</h3>
-                  <p className="font-body text-[10px] text-white/40">At your table</p>
-                  {state.orderType === 'dine-in' && <motion.div layoutId="active-tick" className="absolute top-2 right-2 text-gold text-xs">✓</motion.div>}
+                  <h3 className="font-display text-base font-light mt-2">Dine In</h3>
+                  {isBaseDineIn && <motion.div layoutId="active-tick" className="absolute top-2 right-2 text-gold text-xs">✓</motion.div>}
                 </button>
               </div>
 
-              {state.orderType === 'dine-in' && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  className="mt-3"
+              {/* Timing Sub-options */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setIsScheduled(false)
+                    setScheduledTime(null)
+                    setOrderType(isBasePickup ? 'pickup' : 'dine-in')
+                  }}
+                  className={`flex-1 py-2 font-body text-xs rounded-full transition-colors ${!state.isScheduled ? 'bg-palace-maroon text-cream' : 'text-cream/30 hover:bg-white/5'}`}
                 >
-                  <input
-                    type="number"
-                    placeholder="Table number"
-                    value={state.tableNumber}
-                    onChange={(e) => setTableNumber(e.target.value)}
-                    className="w-full bg-palace-black border border-gold/30 text-gold text-sm p-3 focus:outline-none focus:border-gold placeholder:text-gold/20 font-body transition-all"
-                    required
-                  />
-                </motion.div>
-              )}
+                  {isBasePickup ? 'Order Now' : 'Arrive Now'}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsScheduled(true)
+                    setOrderType(isBasePickup ? 'pickup-scheduled' : 'reservation')
+                  }}
+                  className={`flex-1 py-2 font-body text-xs rounded-full transition-colors ${state.isScheduled ? 'bg-palace-maroon text-cream' : 'text-cream/30 hover:bg-white/5'}`}
+                >
+                  {isBasePickup ? 'Schedule for Later' : 'Reserve for Later'}
+                </button>
+              </div>
+
+              {/* Date/Time Picker */}
+              <AnimatePresence>
+                {state.isScheduled && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                    <div className="mt-4">
+                      <label className="font-body text-[10px] tracking-widest uppercase text-cream/40 mb-3 block">Select Date & Time</label>
+                      <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+                        {availableDates.map((date, i) => {
+                          const isSel = selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => { setSelectedDate(date); setScheduledTime(null); }}
+                              className={`flex-shrink-0 px-4 py-2 border font-body text-xs rounded-none transition-all ${isSel ? 'border-gold bg-gold/10 text-gold' : 'border-palace-stone text-cream/30'}`}
+                            >
+                              {i === 0 ? `Today — ${format(date, 'EEE MMM d')}` : i === 1 ? `Tomorrow — ${format(date, 'EEE MMM d')}` : format(date, 'EEE MMM d')}
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      {selectedDate && selectedDateSlots.length > 0 && (
+                        <div className="flex overflow-x-auto gap-2 pb-2 mt-2 scrollbar-hide">
+                          {selectedDateSlots.map((slot, i) => {
+                            const isSel = state.scheduledTime === slot.toISOString()
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => setScheduledTime(slot.toISOString())}
+                                className={`flex-shrink-0 px-4 py-2 border font-body text-xs rounded-none transition-all ${isSel ? 'border-gold bg-gold/10 text-gold' : 'border-palace-stone text-cream/30'}`}
+                              >
+                                {format(slot, 'h:mm a')}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {state.scheduledTime && (
+                        <div className="font-body text-xs text-gold border border-gold/20 px-3 py-2 mt-2 text-center">
+                          {isBasePickup ? 'Ready at' : 'Arriving at'} {format(parseISO(state.scheduledTime), 'h:mm a')} on {format(parseISO(state.scheduledTime), 'EEEE')}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Dine-In Extras */}
+              <AnimatePresence>
+                {isBaseDineIn && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                    <div className="mt-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="font-body text-[10px] tracking-widest uppercase text-cream/40">Number of Guests</label>
+                        <div className="flex items-center gap-3 bg-palace-smoke border border-palace-stone px-2 py-1">
+                          <button onClick={() => setGuestCount(Math.max(1, (state.guestCount || 1) - 1))} className="w-6 h-6 flex items-center justify-center text-white/50 hover:text-gold">−</button>
+                          <span className="font-display text-sm w-4 text-center text-white">{state.guestCount || 1}</span>
+                          <button onClick={() => setGuestCount(Math.min(info?.maxPartySize ?? 20, (state.guestCount || 1) + 1))} className="w-6 h-6 flex items-center justify-center text-white/50 hover:text-gold">+</button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <input
+                          type="number"
+                          placeholder={`Table no. (1–${info?.totalTables ?? 16}) — optional`}
+                          value={state.tableNumber}
+                          onChange={(e) => setTableNumber(e.target.value)}
+                          min="1" max={info?.totalTables ?? 16}
+                          className="w-full bg-transparent border border-palace-stone px-4 py-2.5 text-cream text-sm rounded-none focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/20 placeholder:text-cream/20 font-body transition-all"
+                        />
+                        <p className="font-body text-[9px] italic text-cream/20 mt-1">Leave blank if you do not know your table yet.</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Items */}
@@ -109,9 +284,47 @@ export default function CartDrawer() {
             {/* Summary */}
             {state.items.length > 0 && (
               <div className="flex-shrink-0 border-t border-palace-stone px-6 py-5 space-y-2">
+                {/* Promo Code Toggle */}
+                <div className="mb-4">
+                  {(info?.activePromos && info.activePromos.length > 0) && (
+                    <button onClick={() => setIsPromoOpen(!isPromoOpen)} className="font-body text-xs text-cream/30 hover:text-gold underline transition-colors cursor-pointer text-left w-full">
+                      🏷️ Have a promo code?
+                    </button>
+                  )}
+                  <AnimatePresence>
+                    {isPromoOpen && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-3">
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="Enter code" 
+                            value={promoInput} 
+                            onChange={(e) => setPromoInput(e.target.value)}
+                            className="bg-transparent border border-palace-stone px-3 py-2 text-cream text-xs rounded-none focus:outline-none focus:border-gold flex-1 uppercase"
+                          />
+                          <button onClick={handleApplyPromo} className="border border-gold text-gold px-4 py-2 text-xs font-body uppercase hover:bg-gold hover:text-palace-black transition-colors">Apply</button>
+                        </div>
+                        {promoError && (
+                          <motion.p animate={shake ? { x: [-5, 5, -5, 5, 0] } : {}} className="text-red-400 font-body text-[10px] mt-1">{promoError}</motion.p>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {state.appliedPromoCode && (
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-green-400 text-xs font-body">✓ {state.appliedPromoCode} applied — saving ${state.promoDiscountAmount.toFixed(2)}</span>
+                      <button onClick={removePromo} className="text-cream/30 text-xs font-body hover:text-white transition-colors">× Remove</button>
+                    </div>
+                  )}
+                </div>
+
                 <SummaryRow label="Subtotal" value={`$${subtotal.toFixed(2)}`} />
                 <SummaryRow label="Tax (8%)" value={`$${tax.toFixed(2)}`} />
-                <SummaryRow label={state.orderType === 'dine-in' ? 'Service' : 'Pickup'} value={state.orderType === 'dine-in' ? 'AT TABLE' : 'FREE'} valueClass="text-gold" />
+                {state.appliedPromoCode && (
+                  <div className="flex justify-between"><span className="font-body text-xs text-green-400 tracking-wide">Promo ({state.appliedPromoCode})</span><span className="font-body text-xs text-green-400">−${state.promoDiscountAmount.toFixed(2)}</span></div>
+                )}
+                <SummaryRow label={isBaseDineIn ? 'Service' : 'Pickup'} value={isBaseDineIn ? 'AT TABLE' : 'FREE'} valueClass="text-gold" />
                 <div className="border-t border-palace-stone/50 my-2" />
                 <div className="flex justify-between">
                   <span className="font-display text-base text-white">Total</span>
@@ -130,16 +343,13 @@ export default function CartDrawer() {
                   <p className="font-body text-[10px] text-red-400/60 text-center mb-2">🔴 {storeStatus.message}</p>
                 )}
                 <motion.button
-                  disabled={state.orderType === 'dine-in' && !state.tableNumber}
+                  disabled={(state.isScheduled && !state.scheduledTime)}
                   onClick={() => { closeCart(); router.push('/checkout') }}
                   className="bg-gold text-palace-black w-full py-4 rounded-none font-body font-semibold text-sm tracking-[0.2em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                  whileHover={state.orderType === 'dine-in' && !state.tableNumber ? {} : { boxShadow: '0 0 30px rgba(201,168,76,0.5)' }}
-                  whileTap={state.orderType === 'dine-in' && !state.tableNumber ? {} : { scale: 0.98 }}>
+                  whileHover={(state.isScheduled && !state.scheduledTime) ? {} : { boxShadow: '0 0 30px rgba(201,168,76,0.5)' }}
+                  whileTap={(state.isScheduled && !state.scheduledTime) ? {} : { scale: 0.98 }}>
                   Proceed to Checkout →
                 </motion.button>
-                <p className="font-body text-[10px] text-white/20 mt-3 text-center">
-                  {state.orderType === 'pickup' ? '🏪 Pickup · Ready in 25–35 min' : `🍽️ Dine In · Table ${state.tableNumber || '?'}`}
-                </p>
               </div>
             )}
           </motion.div>

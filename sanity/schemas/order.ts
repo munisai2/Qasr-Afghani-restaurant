@@ -28,16 +28,25 @@ export default defineType({
       name: 'orderType', title: 'Order Type', type: 'string',
       options: { 
         list: [
-          { title: 'Pickup',  value: 'pickup'  },
-          { title: 'Dine In', value: 'dine-in' },
+          { title: 'Pickup — Immediate',   value: 'pickup'      },
+          { title: 'Pickup — Scheduled',   value: 'pickup-scheduled' },
+          { title: 'Dine In — Now',        value: 'dine-in'     },
+          { title: 'Dine In — Reserved',   value: 'reservation' },
         ] 
       },
       initialValue: 'pickup',
     }),
     defineField({
+      name:  'guestCount',
+      title: 'Number of Guests',
+      type:  'number',
+      description: 'For dine-in orders.',
+    }),
+    defineField({
       name:  'tableNumber',
-      title: 'Table Number',
+      title: 'Table Number (optional)',
       type:  'string',
+      description: 'Customer-selected table. Optional.',
     }),
     defineField({
       name: 'items', title: 'Order Items', type: 'array',
@@ -67,8 +76,24 @@ export default defineType({
       description: 'If set, this is a scheduled order. ' +
                    'Kitchen will be alerted 30 minutes before this time.',
     }),
+    defineField({
+      name:  'reservationTime',
+      title: 'Reservation / Scheduled Time',
+      type:  'datetime',
+      description: 'For both scheduled pickup and dine-in reservations.',
+    }),
     defineField({ name: 'estimatedTime',    title: 'Estimated Pickup Time (min)', type: 'number' }),
     defineField({ name: 'discountAmount',   title: 'Discount Amount ($)',         type: 'number' }),
+    defineField({
+      name:  'promoCode',
+      title: 'Promo Code Used',
+      type:  'string',
+    }),
+    defineField({
+      name:  'promoDiscount',
+      title: 'Promo Discount Amount ($)',
+      type:  'number',
+    }),
     defineField({ name: 'adjustmentReason',  title: 'Adjustment Reason',           type: 'string' }),
     defineField({ name: 'cancellationReason', title: 'Cancellation Reason',          type: 'string' }),
   ],

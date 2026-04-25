@@ -11,8 +11,22 @@ export const restaurantInfoQuery = `
     address, phone, email,
     instagramUrl, reservationUrl,
     restaurantStatus, busyExtraMinutes,
+    totalTables, maxPartySize,
     seoTitle, seoDescription,
     seoImage { asset->{ _id, url } }
+  }
+`
+
+/** Fetches all active promo codes */
+export const activePromoCodesQuery = `
+  *[_type == "promoCode" && isActive == true] {
+    _id,
+    code,
+    discountType,
+    discountValue,
+    minOrderAmount,
+    expiryDate,
+    "applicableItemIds": applicableItems[]->._id
   }
 `
 

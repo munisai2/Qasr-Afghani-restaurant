@@ -31,7 +31,11 @@ export async function POST(req: Request) {
       })
       const scheduledDisplay = `${formattedDate} at ${formattedTime}`
       
-      message = `Hi ${data.customerName}! Your scheduled order #${data.orderId} at Qasr Afghan is confirmed for ${scheduledDisplay}. We will prepare it fresh and SMS you when ready! Call: 716-260-1613`
+      if (data.orderType === 'reservation') {
+        message = `Hi ${data.customerName}! Your dine-in reservation #${data.orderId} at Qasr Afghan is confirmed for ${data.guestCount} guests on ${scheduledDisplay}. See you then! Call: 716-260-1613`
+      } else {
+        message = `Hi ${data.customerName}! Your scheduled pickup order #${data.orderId} at Qasr Afghan is confirmed for ${scheduledDisplay}. We will prepare it fresh and SMS you when ready! Call: 716-260-1613`
+      }
     } else if (type === 'ready') {
       message = `Hi ${data.customerName}! Your order #${data.orderId} at Qasr Afghan is READY for pickup! 🥡 See you soon. Call: 716-260-1613`
     }
