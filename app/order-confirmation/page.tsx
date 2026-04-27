@@ -96,10 +96,10 @@ export default function OrderConfirmationPage() {
                 </p>
               </div>
               <p className="font-body text-sm text-white/50 leading-relaxed max-w-sm mx-auto">
-                Your order will be prepared fresh and ready at your scheduled time. We will send you an SMS reminder 30 minutes before.
+                Your order will be prepared fresh and ready at your scheduled time. We will send you an email reminder 30 minutes before.
               </p>
               <p className="font-body text-[10px] text-cream/30 uppercase tracking-[0.2em]">
-                You will receive an SMS confirmation shortly
+                You will receive an email confirmation shortly
               </p>
             </div>
           ) : (
@@ -118,7 +118,7 @@ export default function OrderConfirmationPage() {
                     {order.estimatedTime ? `~${order.estimatedTime} minutes` : '25–35 minutes'}
                   </p>
                   <p className="font-body text-sm text-white/50 leading-relaxed max-w-sm mx-auto">
-                    Your order is being prepared. You will receive an SMS when it is ready for pickup!
+                    Your order is being prepared. You will receive an email when it is ready for pickup!
                   </p>
                 </div>
               )}
@@ -127,15 +127,13 @@ export default function OrderConfirmationPage() {
         </div>
 
         {/* Info Box — only for non-scheduled or as secondary for scheduled */}
-        {!order.scheduledTime && (
+        {!order.scheduledTime && !isDineIn && (
           <div className="border border-gold/20 bg-gold/5 px-6 py-4 mt-8 max-w-sm mx-auto flex items-center gap-3">
             <svg viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="1.5" className="w-5 h-5 flex-shrink-0">
               <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <p className="font-body text-sm text-white/60 text-left">
-              You will receive an SMS confirmation on{' '}
-              <span className="text-gold">{order.customer.phone}</span>{' '}
-              shortly.
+              You will receive an email confirmation shortly.
             </p>
           </div>
         )}

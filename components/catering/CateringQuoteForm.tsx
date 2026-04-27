@@ -24,6 +24,8 @@ interface CateringQuoteFormProps {
 
 export default function CateringQuoteForm({ planTitles }: CateringQuoteFormProps) {
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submittedEmail, setSubmittedEmail] = useState('')
+  const [submittedPhone, setSubmittedPhone] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
   const [minDate, setMinDate] = useState('')
@@ -61,6 +63,8 @@ export default function CateringQuoteForm({ planTitles }: CateringQuoteFormProps
         }),
       })
       if (!res.ok) throw new Error('Server error')
+      setSubmittedEmail(formData.email || '')
+      setSubmittedPhone(formData.phone || '')
       setIsSubmitted(true)
       reset()
       AnalyticsEvents.cateringInquiry(Number(formData.guestCount))
@@ -98,9 +102,20 @@ export default function CateringQuoteForm({ planTitles }: CateringQuoteFormProps
             <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16">
               <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }} className="text-gold text-5xl inline-block">◆</motion.span>
               <h3 className="font-display text-3xl font-light text-white tracking-wide mt-6">Your Request Has Been Sent to the Palace</h3>
-              <p className="font-body text-sm text-white/50 max-w-sm mx-auto mt-4 leading-relaxed">
-                Our catering team will contact you within 24 hours to begin crafting your palace experience.
-              </p>
+              {submittedEmail ? (
+                <>
+                  <p className="font-body text-sm text-white/50 max-w-sm mx-auto mt-4 leading-relaxed">
+                    Our catering team will contact you within 24 hours to discuss your event.
+                  </p>
+                  <p className="font-body text-xs text-white/30 max-w-sm mx-auto mt-2 italic">
+                    A confirmation email has been sent to your email address.
+                  </p>
+                </>
+              ) : (
+                <p className="font-body text-sm text-white/50 max-w-sm mx-auto mt-4 leading-relaxed">
+                  We will contact you at {submittedPhone} within 24 hours.
+                </p>
+              )}
               <button onClick={() => setIsSubmitted(false)} className="font-body text-xs text-gold underline mt-8 hover:text-gold-light transition-colors">Send Another Request</button>
             </motion.div>
           ) : (

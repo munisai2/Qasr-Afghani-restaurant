@@ -12,6 +12,7 @@ import { validatePromoCode } from '@/lib/promo'
 import { format, addDays, startOfToday, setHours, setMinutes, isBefore, isAfter, parseISO } from 'date-fns'
 import { parseTimeToMinutes, parseDayRange } from '@/lib/storeHours'
 import type { OpeningHours } from '@/types/sanity'
+import { optimizedImage } from '@/sanity.client'
 
 function generateOrderId() {
   return 'QA-' + Math.random().toString(36).substring(2, 7).toUpperCase()
@@ -190,14 +191,13 @@ export default function CheckoutPage() {
         promoDiscount: state.promoDiscountAmount,
         estimatedTime: prepTimeResult.minutes,
         scheduledTime: state.scheduledTime ?? null,
+        logoUrl: info?.logo 
+          ? optimizedImage(info.logo, { width: 200, height: 200 })
+          : undefined
       }
 
-      // Fire-and-forget: email receipt + owner notification
-      fetch('/api/send-receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload),
-      }).catch(() => {})
+      // NOTE: Receipt email is sent by the kitchen app when staff accepts the order.
+      // Do NOT call /api/send-receipt here.
 
       // Fire-and-forget: save to Sanity (permanent record)
       fetch('/api/save-order', {
@@ -213,24 +213,6 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderPayload),
       }).catch(() => {})
 
-      // Fire-and-forget: initial confirmation SMS
-      fetch('/api/send-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to:   data.phone,
-          type: state.scheduledTime ? 'scheduled' : 'received',
-          data: {
-            orderId:       order.orderId,
-            customerName:  `${data.firstName} ${data.lastName}`,
-            estimatedTime: prepTimeResult.minutes,
-            orderType:     state.orderType,
-            tableNumber:   state.tableNumber,
-            guestCount:    state.guestCount,
-            scheduledTime: state.scheduledTime,
-          }
-        })
-      }).catch(() => {})
 
       AnalyticsEvents.orderPlaced(order.orderId, total)
 

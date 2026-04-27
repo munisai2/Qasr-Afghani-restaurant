@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
+import { generateAdjustmentHTML } from '@/lib/emailTemplates'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      email, orderId, customerName, type, newValue, reason,
+      email, orderId, customerName, type, newValue, reason, logoUrl
     } = body
 
-    if (!orderId || !customerName || !type || newValue === undefined) {
+    // 'ready' and 'reservation_reminder' don't require newValue
+    const needsValue = !['ready'].includes(type)
+    if (!orderId || !customerName || !type || (needsValue && newValue === undefined)) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
@@ -20,17 +24,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, skipped: true })
     }
 
-    const { Resend } = await import('resend')
-    const { generateAdjustmentHTML } = await import('@/lib/emailTemplates')
-
     const resend = new Resend(apiKey)
 
     if (email) {
+      let subject = `Update regarding your order ${orderId} | Qasr Afghan`
+      if (type === 'ready') subject = 'Your order is ready for pickup! | Qasr Afghan'
+      if (type === 'reservation_reminder') subject = 'Your reservation is coming up! | Qasr Afghan'
+
       const { error } = await resend.emails.send({
         from:    `Qasr Afghan <${fromAddr}>`,
         to:      [email],
-        subject: `Update regarding your order ${orderId} | Qasr Afghan`,
-        html:    generateAdjustmentHTML({ orderId, customerName, type, newValue, reason }),
+        subject,
+        html:    generateAdjustmentHTML({ orderId, customerName, type, newValue, reason, logoUrl }),
       })
 
       if (error) {

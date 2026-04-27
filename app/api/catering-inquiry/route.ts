@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const {
       firstName, lastName, email, phone,
       selectedPlan, eventDate, guestCount, message,
-      turnstileToken,
+      turnstileToken, logoUrl,
     } = body
 
     // Validate Turnstile token
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
           guestCount: Number(guestCount),
           message,
           submittedAt: new Date().toISOString(),
+          logoUrl,
         }),
       }).catch(err => console.warn('[catering-inquiry] Email error:', err))
     }

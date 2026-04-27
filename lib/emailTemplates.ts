@@ -13,6 +13,10 @@ interface ReceiptEmailData {
   total: number
   specialRequests?: string
   placedAt: string
+  logoUrl?: string
+  estimatedTime?: number
+  discountAmount?: number
+  adjustmentReason?: string
 }
 
 export interface OwnerOrderData {
@@ -27,6 +31,7 @@ export interface OwnerOrderData {
   total: number
   specialRequests?: string
   placedAt: string
+  logoUrl?: string
 }
 
 export interface OwnerCateringData {
@@ -38,6 +43,7 @@ export interface OwnerCateringData {
   guestCount: number
   message: string
   submittedAt: string
+  logoUrl?: string
 }
 
 // ═══════════════════════════════════════
@@ -79,10 +85,28 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
     day: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 
-  const typeLabel = isDineIn ? `🍽️ Dine In — Table ${data.tableNumber}` : '🏪 Pickup Order — Ready in 25–35 min'
+  const readyTime = data.estimatedTime ? `${data.estimatedTime} minutes` : '25–35 minutes'
+  const typeLabel = isDineIn ? `🍽️ Dine In — Table ${data.tableNumber}` : `🏪 Pickup — Ready in ${readyTime}`
+  
+  const adjustment = data.discountAmount !== undefined ? -data.discountAmount : 0
+  const hasAdjustment = adjustment !== 0
+  
   const message = isDineIn 
-    ? `Your order has been received! Our team will bring your food to <strong>Table ${data.tableNumber}</strong> as soon as it is ready. You will receive an SMS confirmation shortly.`
-    : `Your order has been received and is now being prepared. You will receive an SMS confirmation shortly.`
+    ? `Your order has been accepted by our kitchen! Our team will bring your food to <strong>Table ${data.tableNumber}</strong> as soon as it is ready.`
+    : hasAdjustment
+      ? `Your order has been accepted! There were slight adjustments made to your order by our kitchen team. The updated details are shown below.<br><br>Your order will be ready in approximately <strong>${readyTime}</strong>. We'll email you when it's ready for pickup.`
+      : `Great news! Your order has been accepted by our kitchen and is now being prepared. It will be ready for pickup in approximately <strong>${readyTime}</strong>.<br><br>We'll send you another email the moment your order is ready for collection.`
+
+  const adjustmentBannerHTML = hasAdjustment ? `
+    <tr><td style="padding: 0 0 20px 0;">
+      <div style="border-left: 3px solid #C9A84C; background: rgba(201,168,76,0.08); padding: 14px 16px;">
+        <p style="color: #C9A84C; font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; font-family: Arial, sans-serif; margin: 0 0 8px 0;">ORDER ADJUSTMENT</p>
+        <p style="color: rgba(255,255,255,0.7); font-size: 13px; font-family: Arial, sans-serif; margin: 0 0 6px 0;">
+          An adjustment of <strong style="color: ${adjustment < 0 ? '#4ADE80' : '#F97316'};">${adjustment < 0 ? '−' : '+'}$${Math.abs(adjustment).toFixed(2)}</strong> has been applied to your order.
+        </p>
+        ${data.adjustmentReason ? `<p style="color: rgba(255,255,255,0.4); font-size: 12px; font-family: Arial, sans-serif; font-style: italic; margin: 0;">Reason: ${data.adjustmentReason}</p>` : ''}
+      </div>
+    </td></tr>` : ''
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -91,9 +115,12 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <tr>
       <td style="text-align: center; padding-bottom: 32px; border-bottom: 1px solid #2C2720;">
-        <div style="display: inline-block; border: 1px solid rgba(201,168,76,0.3); padding: 16px 32px; margin-bottom: 16px;">
-          <p style="color: #C9A84C; font-size: 24px; letter-spacing: 0.3em; margin: 0; font-style: italic;">Qasr Afghan</p>
-        </div>
+        ${data.logoUrl 
+          ? `<img src="${data.logoUrl}" alt="Qasr Afghan" width="100" height="100" style="display:block; margin:0 auto 16px auto; border-radius:50%; border:2px solid #C9A84C;" />`
+          : `<div style="display: inline-block; border: 1px solid rgba(201,168,76,0.3); padding: 16px 32px; margin-bottom: 16px;">
+              <p style="color: #C9A84C; font-size: 24px; letter-spacing: 0.3em; margin: 0; font-style: italic;">Qasr Afghan</p>
+             </div>`
+        }
         <p style="color: rgba(255,255,255,0.3); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; margin: 8px 0 0 0; font-family: Arial, sans-serif;">BUFFALO, NEW YORK  ·  AUTHENTIC AFGHAN CUISINE</p>
       </td>
     </tr>
@@ -129,6 +156,7 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
         </table>
       </td>
     </tr>
+    ${adjustmentBannerHTML}
     ${data.specialRequests ? `<tr><td style="padding: 0 0 20px 0;"><p style="color: rgba(201,168,76,0.6); font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; font-family: Arial, sans-serif; margin: 0 0 6px 0;">SPECIAL REQUESTS</p><p style="color: rgba(255,255,255,0.4); font-size: 13px; font-family: Arial, sans-serif; font-style: italic; margin: 0;">${data.specialRequests}</p></td></tr>` : ''}
     <tr>
       <td style="border-top: 1px solid #2C2720; padding-top: 32px; text-align: center;">
@@ -173,6 +201,10 @@ export function generateOwnerOrderHTML(data: OwnerOrderData): string {
 <body style="margin:0;padding:0;background:#0A0805;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:550px;margin:0 auto;padding:30px 20px;">
   <tr><td style="text-align:center;padding-bottom:20px;border-bottom:1px solid #2C2720;">
+    ${data.logoUrl 
+      ? `<img src="${data.logoUrl}" alt="Qasr Afghan" width="100" height="100" style="display:block; margin:0 auto 16px auto; border-radius:50%; border:2px solid #C9A84C;" />`
+      : ''
+    }
     <p style="color:#C9A84C;font-size:12px;letter-spacing:0.3em;text-transform:uppercase;margin:0;">${typeLabel}</p>
     <h1 style="color:#C9A84C;font-size:36px;font-weight:700;letter-spacing:0.1em;margin:8px 0 0;">${data.orderId}</h1>
     <p style="color:rgba(255,255,255,0.3);font-size:11px;margin:8px 0 0;">Placed at ${placedDate}</p>
@@ -216,6 +248,10 @@ export function generateOwnerCateringHTML(data: OwnerCateringData): string {
 <body style="margin:0;padding:0;background:#0A0805;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:550px;margin:0 auto;padding:30px 20px;">
   <tr><td style="text-align:center;padding-bottom:20px;border-bottom:1px solid #2C2720;">
+    ${data.logoUrl 
+      ? `<img src="${data.logoUrl}" alt="Qasr Afghan" width="100" height="100" style="display:block; margin:0 auto 16px auto; border-radius:50%; border:2px solid #C9A84C;" />`
+      : ''
+    }
     <p style="color:#C9A84C;font-size:12px;letter-spacing:0.3em;text-transform:uppercase;margin:0;">🍽️  NEW CATERING INQUIRY</p>
     <h1 style="color:#C9A84C;font-size:28px;font-weight:300;letter-spacing:0.1em;margin:10px 0 0;">${data.customerName}</h1>
     <p style="color:rgba(255,255,255,0.3);font-size:11px;margin:6px 0 0;">Received ${submittedDate}</p>
@@ -255,22 +291,51 @@ export function generateOwnerCateringHTML(data: OwnerCateringData): string {
 export function generateAdjustmentHTML(data: {
   orderId: string,
   customerName: string,
-  type: 'time' | 'price',
+  type: 'time' | 'price' | 'ready' | 'reservation_reminder',
   newValue: string | number,
-  reason?: string
+  reason?: string,
+  logoUrl?: string
 }): string {
-  const isTime = data.type === 'time'
-  const message = isTime
-    ? `Your pickup time has been adjusted to <strong>${data.newValue} minutes</strong> from now.`
-    : `Your order total has been adjusted. The new total is <strong>$${Number(data.newValue).toFixed(2)}</strong>.`
+  let message = ''
+  let title = 'Order Update'
+  let isReadyOrReminder = false
+  let callActionHTML = ''
 
-  return `<!DOCTYPE html><html><body style="background:#0A0805;padding:40px;font-family:Arial,sans-serif;color:white;text-align:center;">
-    <div style="max-width:500px;margin:0 auto;border:1px solid #C9A84C;padding:40px;">
-      <h2 style="color:#C9A84C;letter-spacing:0.2em;text-transform:uppercase;">Order Update</h2>
-      <p style="font-size:24px;margin:20px 0;">#${data.orderId}</p>
-      <p style="color:rgba(255,255,255,0.7);line-height:1.6;">Hello ${data.customerName},<br><br>${message}</p>
-      ${data.reason ? `<p style="background:rgba(201,168,76,0.1);padding:15px;font-style:italic;color:#C9A84C;margin-top:20px;">"${data.reason}"</p>` : ''}
-      <p style="margin-top:40px;color:rgba(255,255,255,0.3);font-size:12px;">Thank you for your patience.<br>Qasr Afghan</p>
+  if (data.type === 'time') {
+    message = `Your pickup time has been adjusted to <strong>${data.newValue} minutes</strong> from now.`
+  } else if (data.type === 'price') {
+    message = `Your order total has been adjusted. The new total is <strong>$${Number(data.newValue).toFixed(2)}</strong>.`
+  } else if (data.type === 'ready') {
+    title = 'Order Ready'
+    isReadyOrReminder = true
+    message = `Hi ${data.customerName}, your order is ready for pickup at Qasr Afghan!<br><br>2487 Niagara Falls Blvd, Buffalo NY 14228<br><br>Please come in to collect your order.`
+    callActionHTML = `<a href="tel:716-260-1613" style="display:inline-block; margin-top:20px; padding:12px 24px; background-color:#C9A84C; color:#0A0805; font-weight:bold; text-decoration:none; border-radius:4px; font-size:14px; letter-spacing:0.1em; text-transform:uppercase;">Call us: 716-260-1613</a>`
+  } else if (data.type === 'reservation_reminder') {
+    title = 'Reservation Reminder'
+    isReadyOrReminder = true
+    message = `Hi ${data.customerName}, a reminder that your reservation at Qasr Afghan is coming up!<br><br>Time: <strong>${data.newValue}</strong><br><br>Your food will be freshly prepared for your arrival.`
+    callActionHTML = `<a href="tel:716-260-1613" style="display:inline-block; margin-top:20px; padding:12px 24px; background-color:#C9A84C; color:#0A0805; font-weight:bold; text-decoration:none; border-radius:4px; font-size:14px; letter-spacing:0.1em; text-transform:uppercase;">Questions? Call us: 716-260-1613</a>`
+  }
+
+  const logoHTML = data.logoUrl
+    ? `<img src="${data.logoUrl}" alt="Qasr Afghan" width="80" height="80" style="display:block; margin:0 auto 16px auto; border-radius:50%; border:2px solid #C9A84C;" />`
+    : ''
+
+  const headingHTML = isReadyOrReminder && data.type === 'ready'
+    ? `<h1 style="color:#C9A84C; font-family:Georgia, serif; font-size:32px; font-weight:300; margin:10px 0;">✓ Your order is ready!</h1>`
+    : `<h2 style="color:#C9A84C;letter-spacing:0.2em;text-transform:uppercase;margin:0;">${title}</h2>`
+
+  return `<!DOCTYPE html><html><body style="background:#0A0805;padding:40px;font-family:Arial,sans-serif;color:white;text-align:center;margin:0;">
+    <div style="max-width:500px;margin:0 auto;border:1px solid #2C2720;padding:40px;background:#141210;">
+      ${logoHTML}
+      ${headingHTML}
+      <p style="font-size:24px;color:#C9A84C;letter-spacing:0.1em;margin:16px 0 24px;">#${data.orderId}</p>
+      <p style="color:rgba(255,255,255,0.8);line-height:1.7;font-size:16px;">${!isReadyOrReminder ? `Hello ${data.customerName},<br><br>` : ''}${message}</p>
+      ${data.reason ? `<p style="background:rgba(201,168,76,0.1);padding:15px;font-style:italic;color:#C9A84C;margin-top:24px;border-left:3px solid #C9A84C;text-align:left;">"${data.reason}"</p>` : ''}
+      ${callActionHTML}
+      <div style="margin-top:40px;border-top:1px solid #2C2720;padding-top:20px;">
+        <p style="color:rgba(255,255,255,0.3);font-size:12px;line-height:1.6;">Thank you for choosing Qasr Afghan.<br>2487 Niagara Falls Blvd, Buffalo NY 14228</p>
+      </div>
     </div>
   </body></html>`
 }
