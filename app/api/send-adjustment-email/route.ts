@@ -6,7 +6,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      email, orderId, customerName, type, newValue, reason, logoUrl, discountAmount
+      email, orderId, customerName, type, newValue, reason, logoUrl, 
+      discountAmount, adjustmentReason, promoCode, promoDiscount, kitchenMessage
     } = body
 
     // 'ready' and 'reservation_reminder' don't require newValue
@@ -37,7 +38,8 @@ export async function POST(req: NextRequest) {
         subject,
         html:    generateAdjustmentHTML({ orderId, customerName, type: type as any,
           newValue: newValue || '',
-          reason, logoUrl, discountAmount
+          reason, logoUrl, discountAmount, adjustmentReason,
+          promoCode, promoDiscount, kitchenMessage
         }),
       })
 

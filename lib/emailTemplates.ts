@@ -19,6 +19,7 @@ interface ReceiptEmailData {
   adjustmentReason?: string
   promoCode?: string
   promoDiscount?: number
+  kitchenMessage?: string
 }
 
 export interface OwnerOrderData {
@@ -131,6 +132,16 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
       </div>
     </td></tr>` : ''
 
+  const restaurantMessageHTML = data.kitchenMessage ? `
+    <tr><td style="padding: 0 0 20px 0;">
+      <div style="border: 1px solid rgba(201,168,76,0.3); background: rgba(201,168,76,0.03); padding: 16px;">
+        <p style="color: #C9A84C; font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; font-family: Arial, sans-serif; margin: 0 0 8px 0;">MESSAGE FROM RESTAURANT</p>
+        <p style="color: #E2DDD5; font-size: 14px; line-height: 1.5; font-family: Georgia, serif; margin: 0; font-style: italic;">
+          "${data.kitchenMessage}"
+        </p>
+      </div>
+    </td></tr>` : ''
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Order Confirmation — Qasr Afghan</title></head>
@@ -177,6 +188,7 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
       </td>
     </tr>
     ${adjustmentBannerHTML}
+    ${restaurantMessageHTML}
     ${data.specialRequests ? `<tr><td style="padding: 0 0 20px 0;"><p style="color: rgba(201,168,76,0.6); font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; font-family: Arial, sans-serif; margin: 0 0 6px 0;">SPECIAL REQUESTS</p><p style="color: rgba(255,255,255,0.4); font-size: 13px; font-family: Arial, sans-serif; font-style: italic; margin: 0;">${data.specialRequests}</p></td></tr>` : ''}
     <tr>
       <td style="border-top: 1px solid #2C2720; padding-top: 32px; text-align: center;">
@@ -315,7 +327,11 @@ export function generateAdjustmentHTML(data: {
   newValue: string | number,
   reason?: string,
   logoUrl?: string,
-  discountAmount?: number
+  discountAmount?: number,
+  adjustmentReason?: string,
+  promoCode?: string,
+  promoDiscount?: number,
+  kitchenMessage?: string
 }): string {
   let message = ''
   let title = 'Order Update'
@@ -354,6 +370,15 @@ export function generateAdjustmentHTML(data: {
       <p style="color: rgba(255,255,255,0.7); font-size: 13px; font-family: Arial, sans-serif; margin: 0 0 6px 0;">
         An adjustment of <strong style="color: ${adjustment < 0 ? '#4ADE80' : '#F97316'};">${adjustment < 0 ? '−' : '+'}$${Math.abs(adjustment).toFixed(2)}</strong> has been applied.
       </p>
+      ${data.adjustmentReason ? `<p style="color: rgba(255,255,255,0.4); font-size: 11px; font-family: Arial, sans-serif; font-style: italic; margin: 0;">Reason: ${data.adjustmentReason}</p>` : ''}
+    </div>` : ''
+
+  const restaurantMessageHTML = data.kitchenMessage ? `
+    <div style="border: 1px solid rgba(201,168,76,0.2); background: rgba(201,168,76,0.02); padding: 16px; margin-top: 24px; text-align: left;">
+      <p style="color: #C9A84C; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; font-family: Arial, sans-serif; margin: 0 0 8px 0;">MESSAGE FROM RESTAURANT</p>
+      <p style="color: #E2DDD5; font-size: 14px; line-height: 1.5; font-family: Georgia, serif; margin: 0; font-style: italic;">
+        "${data.kitchenMessage}"
+      </p>
     </div>` : ''
 
   return `<!DOCTYPE html><html><body style="background:#0A0805;padding:40px;font-family:Arial,sans-serif;color:white;text-align:center;margin:0;">
@@ -363,6 +388,7 @@ export function generateAdjustmentHTML(data: {
       <p style="font-size:24px;color:#C9A84C;letter-spacing:0.1em;margin:16px 0 24px;">#${data.orderId}</p>
       <p style="color:rgba(255,255,255,0.8);line-height:1.7;font-size:16px;">${!isReadyOrReminder ? `Hello ${data.customerName},<br><br>` : ''}${message}</p>
       ${adjustmentBannerHTML}
+      ${restaurantMessageHTML}
       ${data.reason ? `<p style="background:rgba(201,168,76,0.1);padding:15px;font-style:italic;color:#C9A84C;margin-top:16px;border-left:3px solid #C9A84C;text-align:left;">"${data.reason}"</p>` : ''}
       ${callActionHTML}
       <div style="margin-top:40px;border-top:1px solid #2C2720;padding-top:20px;">

@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       specialRequests, placedAt, logoUrl, estimatedTime,
       discountAmount, adjustmentReason,
       promoCode, promoDiscount,
+      kitchenMessage,
     } = body
 
     if (!orderId || !customerName) {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
           specialRequests, placedAt, logoUrl, estimatedTime,
           discountAmount, adjustmentReason,
           promoCode, promoDiscount,
+          kitchenMessage,
         }),
       })
       if (customerErr) {
