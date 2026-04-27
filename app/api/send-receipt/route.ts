@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
       items, subtotal, tax, total,
       specialRequests, placedAt, logoUrl, estimatedTime,
       discountAmount, adjustmentReason,
+      promoCode, promoDiscount,
     } = body
 
     if (!orderId || !customerName) {
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
           items, subtotal, tax, total,
           specialRequests, placedAt, logoUrl, estimatedTime,
           discountAmount, adjustmentReason,
+          promoCode, promoDiscount,
         }),
       })
       if (customerErr) {

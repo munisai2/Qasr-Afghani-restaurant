@@ -17,6 +17,8 @@ interface ReceiptEmailData {
   estimatedTime?: number
   discountAmount?: number
   adjustmentReason?: string
+  promoCode?: string
+  promoDiscount?: number
 }
 
 export interface OwnerOrderData {
@@ -52,6 +54,10 @@ export interface OwnerCateringData {
 
 export function generateReceiptHTML(data: ReceiptEmailData): string {
   const isDineIn = data.orderType === 'dine-in'
+  const subtotal = data.subtotal || 0
+  const tax = data.tax || 0
+  const promo = data.promoDiscount || 0
+  const total = data.total || (subtotal + tax - (data.discountAmount || 0) - promo)
   
   const itemsHTML = data.items.map(item => `
     <table width="100%" style="margin-bottom: 12px;">
@@ -66,6 +72,12 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
       </tr>
     </table>
   `).join('')
+
+  const promoRowHTML = promo > 0 ? `
+    <tr>
+      <td style="padding: 8px 0; color: #4ADE80; font-size: 14px; font-family: Arial, sans-serif;">Promo (${data.promoCode || 'Applied'})</td>
+      <td style="padding: 8px 0; text-align: right; color: #4ADE80; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">−$${promo.toFixed(2)}</td>
+    </tr>` : ''
 
   const totalsHTML = [
     ['Subtotal', `$${data.subtotal.toFixed(2)}`],
@@ -149,9 +161,10 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
         ${totalsHTML}
         <div style="border-top: 1px solid #2C2720; margin: 12px 0 8px;"></div>
         <table width="100%">
+          ${promoRowHTML}
           <tr>
             <td style="color: white; font-size: 15px; font-family: Georgia, serif; letter-spacing: 0.05em;">Total</td>
-            <td style="color: #C9A84C; font-size: 18px; text-align: right; font-family: Georgia, serif;">$${data.total.toFixed(2)}</td>
+            <td style="color: #C9A84C; font-size: 18px; text-align: right; font-family: Georgia, serif;">$${total.toFixed(2)}</td>
           </tr>
         </table>
       </td>
@@ -294,7 +307,8 @@ export function generateAdjustmentHTML(data: {
   type: 'time' | 'price' | 'ready' | 'reservation_reminder',
   newValue: string | number,
   reason?: string,
-  logoUrl?: string
+  logoUrl?: string,
+  discountAmount?: number
 }): string {
   let message = ''
   let title = 'Order Update'
@@ -325,13 +339,24 @@ export function generateAdjustmentHTML(data: {
     ? `<h1 style="color:#C9A84C; font-family:Georgia, serif; font-size:32px; font-weight:300; margin:10px 0;">✓ Your order is ready!</h1>`
     : `<h2 style="color:#C9A84C;letter-spacing:0.2em;text-transform:uppercase;margin:0;">${title}</h2>`
 
+  const adjustment = data.discountAmount !== undefined ? -data.discountAmount : 0
+  const hasAdjustment = adjustment !== 0
+  const adjustmentBannerHTML = hasAdjustment ? `
+    <div style="border-left: 3px solid #C9A84C; background: rgba(201,168,76,0.08); padding: 14px 16px; margin-top: 24px; text-align: left;">
+      <p style="color: #C9A84C; font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; font-family: Arial, sans-serif; margin: 0 0 8px 0;">ORDER ADJUSTMENT</p>
+      <p style="color: rgba(255,255,255,0.7); font-size: 13px; font-family: Arial, sans-serif; margin: 0 0 6px 0;">
+        An adjustment of <strong style="color: ${adjustment < 0 ? '#4ADE80' : '#F97316'};">${adjustment < 0 ? '−' : '+'}$${Math.abs(adjustment).toFixed(2)}</strong> has been applied.
+      </p>
+    </div>` : ''
+
   return `<!DOCTYPE html><html><body style="background:#0A0805;padding:40px;font-family:Arial,sans-serif;color:white;text-align:center;margin:0;">
     <div style="max-width:500px;margin:0 auto;border:1px solid #2C2720;padding:40px;background:#141210;">
       ${logoHTML}
       ${headingHTML}
       <p style="font-size:24px;color:#C9A84C;letter-spacing:0.1em;margin:16px 0 24px;">#${data.orderId}</p>
       <p style="color:rgba(255,255,255,0.8);line-height:1.7;font-size:16px;">${!isReadyOrReminder ? `Hello ${data.customerName},<br><br>` : ''}${message}</p>
-      ${data.reason ? `<p style="background:rgba(201,168,76,0.1);padding:15px;font-style:italic;color:#C9A84C;margin-top:24px;border-left:3px solid #C9A84C;text-align:left;">"${data.reason}"</p>` : ''}
+      ${adjustmentBannerHTML}
+      ${data.reason ? `<p style="background:rgba(201,168,76,0.1);padding:15px;font-style:italic;color:#C9A84C;margin-top:16px;border-left:3px solid #C9A84C;text-align:left;">"${data.reason}"</p>` : ''}
       ${callActionHTML}
       <div style="margin-top:40px;border-top:1px solid #2C2720;padding-top:20px;">
         <p style="color:rgba(255,255,255,0.3);font-size:12px;line-height:1.6;">Thank you for choosing Qasr Afghan.<br>2487 Niagara Falls Blvd, Buffalo NY 14228</p>
