@@ -230,8 +230,9 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
 
   const itemCount = useMemo(() => state.items.reduce((s, i) => s + i.quantity, 0), [state.items])
   const subtotal = useMemo(() => state.items.reduce((s, i) => s + i.price * i.quantity, 0), [state.items])
-  const tax = subtotal * 0.08
-  const total = subtotal + tax - state.promoDiscountAmount
+  const discountedSubtotal = Math.max(0, subtotal - state.promoDiscountAmount)
+  const tax = discountedSubtotal * 0.08
+  const total = discountedSubtotal + tax
 
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => dispatch({ type: 'ADD_ITEM', payload: { ...item, quantity: 1 } }), [])
   const addItemWithQty = useCallback((item: Omit<CartItem, 'quantity'>, qty: number) => dispatch({ type: 'ADD_ITEM_WITH_QTY', payload: { ...item, quantity: 1, initialQty: qty } }), [])

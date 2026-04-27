@@ -169,10 +169,6 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
         <div style="border-top: 1px solid #2C2720; margin: 12px 0 8px;"></div>
         <table width="100%">
           ${promoRowHTML}
-          <tr>
-            <td style="color: white; font-size: 15px; font-family: Georgia, serif; letter-spacing: 0.05em;">Total</td>
-            <td style="color: #C9A84C; font-size: 18px; text-align: right; font-family: Georgia, serif;">$${total.toFixed(2)}</td>
-          </tr>
         </table>
       </td>
     </tr>
