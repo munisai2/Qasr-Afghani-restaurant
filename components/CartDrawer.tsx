@@ -132,8 +132,10 @@ export default function CartDrawer() {
               <button onClick={closeCart} className="w-8 h-8 border border-palace-stone text-white/40 hover:text-gold hover:border-gold transition-all duration-200 flex items-center justify-center" aria-label="Close cart">✕</button>
             </div>
 
-            {/* Order Type Selector */}
-            <div className="flex-shrink-0 px-6 py-4 bg-palace-smoke/50 border-b border-palace-stone space-y-3">
+            {/* SCROLLABLE CONTENT */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Order Type Selector */}
+              <div className="px-6 py-4 bg-palace-smoke/50 border-b border-palace-stone space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => { setOrderType('pickup'); setIsScheduled(false); setScheduledTime(null); }}
@@ -258,10 +260,10 @@ export default function CartDrawer() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+              </div>
 
-            {/* Items */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {/* Items */}
+              <div className="px-6 py-4 space-y-4">
               {state.items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full">
                   <span className="text-gold/20 text-4xl">◆</span>
@@ -279,6 +281,7 @@ export default function CartDrawer() {
                     onUpdateInstructions={(v) => dispatch({ type: 'UPDATE_INSTRUCTIONS', payload: { id: item.id, instructions: v } })} />
                 ))
               )}
+              </div>
             </div>
 
             {/* Summary */}
