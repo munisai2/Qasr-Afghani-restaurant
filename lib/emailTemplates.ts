@@ -56,11 +56,22 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
   const isDineIn = data.orderType === 'dine-in'
   const originalSubtotal = data.subtotal || 0
   const totalDelta = data.discountAmount !== undefined ? -data.discountAmount : 0
-  const promo = data.promoDiscount || 0
+  const currentSubtotal = originalSubtotal + totalDelta
   
-  // Note: data.tax and data.total are already calculated correctly by the kitchen app
-  const finalTax = data.tax
-  const finalTotal = data.total
+  // Conditional Promo Logic
+  const originalPromo = data.promoDiscount || 0
+  const isBogo = data.promoCode?.toUpperCase().includes('BOGO')
+  let dynamicPromo = originalPromo
+
+  if (!isBogo && originalSubtotal > 0) {
+    const promoRatio = originalPromo / originalSubtotal
+    dynamicPromo = parseFloat((currentSubtotal * promoRatio).toFixed(2))
+  }
+  
+  // New Logic: Tax on (Subtotal - Promo)
+  const discountedSubtotal = Math.max(0, currentSubtotal - dynamicPromo)
+  const finalTax = parseFloat((discountedSubtotal * 0.08).toFixed(2))
+  const finalTotal = parseFloat((discountedSubtotal + finalTax).toFixed(2))
 
   const itemsHTML = (data.items || []).map(item => `
     <tr style="border-bottom: 1px solid #2C2720;">
@@ -75,10 +86,10 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
       <td style="padding: 8px 0; text-align: right; color: ${totalDelta < 0 ? '#4ADE80' : '#F97316'}; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">(${totalDelta < 0 ? '−' : '+'}$${Math.abs(totalDelta).toFixed(2)})</td>
     </tr>` : ''
 
-  const promoRowHTML = promo > 0 ? `
+  const promoRowHTML = dynamicPromo > 0 ? `
     <tr>
       <td style="padding: 8px 0; color: #4ADE80; font-size: 14px; font-family: Arial, sans-serif;">Promo (${data.promoCode || 'Applied'})</td>
-      <td style="padding: 8px 0; text-align: right; color: #4ADE80; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">−$${promo.toFixed(2)}</td>
+      <td style="padding: 8px 0; text-align: right; color: #4ADE80; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">−$${dynamicPromo.toFixed(2)}</td>
     </tr>` : ''
 
   const totalsHTML = `
@@ -88,11 +99,11 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
         <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${originalSubtotal.toFixed(2)}</td>
       </tr>
       ${adjustmentRowHTML}
+      ${promoRowHTML}
       <tr>
-        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Tax (8%)</td>
+        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Tax (8% of $${discountedSubtotal.toFixed(2)})</td>
         <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${finalTax.toFixed(2)}</td>
       </tr>
-      ${promoRowHTML}
       <tr>
         <td style="padding: 20px 0 0 0; color: white; font-weight: bold; font-size: 18px; font-family: Georgia, serif; letter-spacing: 0.05em;">FINAL TOTAL</td>
         <td style="padding: 20px 0 0 0; text-align: right; color: #C9A84C; font-weight: bold; font-size: 24px; font-family: Georgia, serif;">$${finalTotal.toFixed(2)}</td>
