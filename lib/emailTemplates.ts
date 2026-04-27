@@ -54,19 +54,12 @@ export interface OwnerCateringData {
 
 export function generateReceiptHTML(data: ReceiptEmailData): string {
   const isDineIn = data.orderType === 'dine-in'
-  const originalSubtotal = data.subtotal || 0
+  const currentSubtotal = data.subtotal || 0
   const totalDelta = data.discountAmount !== undefined ? -data.discountAmount : 0
-  const currentSubtotal = originalSubtotal + totalDelta
+  const originalSubtotal = Math.max(0, currentSubtotal - totalDelta)
   
-  // Conditional Promo Logic
-  const originalPromo = data.promoDiscount || 0
-  const isBogo = data.promoCode?.toUpperCase().includes('BOGO')
-  let dynamicPromo = originalPromo
-
-  if (!isBogo && originalSubtotal > 0) {
-    const promoRatio = originalPromo / originalSubtotal
-    dynamicPromo = parseFloat((currentSubtotal * promoRatio).toFixed(2))
-  }
+  // Use the promo discount as-is since the kitchen app already calculated the final amount
+  const dynamicPromo = data.promoDiscount || 0
   
   // New Logic: Tax on (Subtotal - Promo)
   const discountedSubtotal = Math.max(0, currentSubtotal - dynamicPromo)
