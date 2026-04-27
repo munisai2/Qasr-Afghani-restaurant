@@ -54,24 +54,26 @@ export interface OwnerCateringData {
 
 export function generateReceiptHTML(data: ReceiptEmailData): string {
   const isDineIn = data.orderType === 'dine-in'
-  const subtotal = data.subtotal || 0
-  const tax = data.tax || 0
+  const originalSubtotal = data.subtotal || 0
+  const totalDelta = data.discountAmount !== undefined ? -data.discountAmount : 0
   const promo = data.promoDiscount || 0
-  const total = data.total || (subtotal + tax - (data.discountAmount || 0) - promo)
   
-  const itemsHTML = data.items.map(item => `
-    <table width="100%" style="margin-bottom: 12px;">
-      <tr>
-        <td style="color: rgba(255,255,255,0.7); font-size: 14px; font-family: Arial, sans-serif;">
-          ${item.name}
-          <span style="color: rgba(255,255,255,0.3); font-size: 11px;"> × ${item.quantity}</span>
-        </td>
-        <td style="color: #C9A84C; font-size: 14px; text-align: right; font-family: Arial, sans-serif;">
-          $${(item.price * item.quantity).toFixed(2)}
-        </td>
-      </tr>
-    </table>
+  // Note: data.tax and data.total are already calculated correctly by the kitchen app
+  const finalTax = data.tax
+  const finalTotal = data.total
+
+  const itemsHTML = (data.items || []).map(item => `
+    <tr style="border-bottom: 1px solid #2C2720;">
+      <td style="padding: 12px 0; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">${item.quantity}x ${item.name}</td>
+      <td style="padding: 12px 0; text-align: right; color: #C9A84C; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">$${(item.price * item.quantity).toFixed(2)}</td>
+    </tr>
   `).join('')
+
+  const adjustmentRowHTML = totalDelta !== 0 ? `
+    <tr>
+      <td style="padding: 8px 0; color: ${totalDelta < 0 ? '#4ADE80' : '#F97316'}; font-size: 14px; font-family: Arial, sans-serif;">Kitchen Adjustment</td>
+      <td style="padding: 8px 0; text-align: right; color: ${totalDelta < 0 ? '#4ADE80' : '#F97316'}; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">(${totalDelta < 0 ? '−' : '+'}$${Math.abs(totalDelta).toFixed(2)})</td>
+    </tr>` : ''
 
   const promoRowHTML = promo > 0 ? `
     <tr>
@@ -79,18 +81,23 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
       <td style="padding: 8px 0; text-align: right; color: #4ADE80; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">−$${promo.toFixed(2)}</td>
     </tr>` : ''
 
-  const totalsHTML = [
-    ['Subtotal', `$${data.subtotal.toFixed(2)}`],
-    ['Tax (8%)', `$${data.tax.toFixed(2)}`],
-    [isDineIn ? 'Service' : 'Pickup', isDineIn ? 'AT TABLE' : 'FREE'],
-  ].map(([label, value]) => `
-    <table width="100%" style="margin-bottom: 6px;">
+  const totalsHTML = `
+    <table width="100%" style="margin-top: 10px;">
       <tr>
-        <td style="color: rgba(255,255,255,0.3); font-size: 11px; font-family: Arial, sans-serif; letter-spacing: 0.05em;">${label}</td>
-        <td style="color: rgba(255,255,255,0.5); font-size: 11px; text-align: right; font-family: Arial, sans-serif;">${value}</td>
+        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Original Subtotal</td>
+        <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${originalSubtotal.toFixed(2)}</td>
       </tr>
-    </table>
-  `).join('')
+      ${adjustmentRowHTML}
+      <tr>
+        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Tax (8%)</td>
+        <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${finalTax.toFixed(2)}</td>
+      </tr>
+      ${promoRowHTML}
+      <tr>
+        <td style="padding: 20px 0 0 0; color: white; font-weight: bold; font-size: 18px; font-family: Georgia, serif; letter-spacing: 0.05em;">FINAL TOTAL</td>
+        <td style="padding: 20px 0 0 0; text-align: right; color: #C9A84C; font-weight: bold; font-size: 24px; font-family: Georgia, serif;">$${finalTotal.toFixed(2)}</td>
+      </tr>
+    </table>`
 
   const placedDate = new Date(data.placedAt).toLocaleString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long',

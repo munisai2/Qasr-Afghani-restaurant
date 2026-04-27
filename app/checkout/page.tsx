@@ -76,6 +76,12 @@ export default function CheckoutPage() {
     addDays(startOfToday(), 2)
   ]
 
+  useEffect(() => {
+    if (state.isScheduled && !selectedDate) {
+      setSelectedDate(startOfToday())
+    }
+  }, [state.isScheduled, selectedDate])
+
   const getTimeSlots = (date: Date) => {
     const dayIndex = date.getDay()
     const entry = openingHours.find(e => !e.isClosed && parseDayRange(e.days).includes(dayIndex))
@@ -87,27 +93,20 @@ export default function CheckoutPage() {
 
     if (openMin === -1 || closeMin === -1) return []
 
-    const slots = []
+    const slots: Date[] = []
     let current = openMin
 
-    // Start 1 hour from now if today
     const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
-    if (isToday) {
-      const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
-      current = Math.max(current, Math.ceil((nowMin + 60) / 30) * 30)
-    }
+    const bufferTime = new Date(Date.now() + 60 * 60 * 1000)
 
     while (current <= closeMin) {
       const h = Math.floor(current / 60)
       const m = current % 60
-      const d = setMinutes(setHours(date, h), m)
+      const slotTime = setMinutes(setHours(date, h), m)
       
-      // If today, ensure it's at least 1 hour away
-      if (isToday && isBefore(d, addDays(new Date(), 0))) {
-         // This check is already handled by 'current' initialization but good to be safe
+      if (!isToday || isAfter(slotTime, bufferTime)) {
+        slots.push(slotTime)
       }
-      
-      slots.push(d)
       current += 30
     }
     return slots

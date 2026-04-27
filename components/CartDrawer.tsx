@@ -47,10 +47,11 @@ export default function CartDrawer() {
   useEffect(() => {
     const today = startOfToday()
     setAvailableDates([today, addDays(today, 1), addDays(today, 2)])
-    if (state.scheduledTime) {
-      setSelectedDate(startOfToday()) // Simplification, would ideally parse the date
+    // Auto-select today if scheduling is enabled but no date picked
+    if (state.isScheduled && !selectedDate) {
+      setSelectedDate(today)
     }
-  }, [state.scheduledTime])
+  }, [state.isScheduled, selectedDate])
 
   useEffect(() => {
     if (!selectedDate || !info?.openingHours) {
@@ -69,7 +70,10 @@ export default function CartDrawer() {
       return
     }
 
-    const [openStr, closeStr] = hoursForDay.hours.split('-').map(s => s.trim())
+    const hoursParts = hoursForDay.hours.split(/\s*[-–—]\s*/)
+    const openStr    = hoursParts[0]?.trim()
+    const closeStr   = hoursParts[1]?.trim()
+
     const openMins = parseTimeToMinutes(openStr)
     const closeMins = parseTimeToMinutes(closeStr)
 
@@ -88,6 +92,11 @@ export default function CartDrawer() {
         slots.push(slotTime)
       }
       currentMins += 30
+    }
+    if (slots.length === 0) {
+      console.warn('[CartDrawer] No slots found for', format(selectedDate, 'yyyy-MM-dd'), {
+        openMins, closeMins, isToday: format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+      })
     }
     setSelectedDateSlots(slots)
   }, [selectedDate, info?.openingHours])
@@ -133,7 +142,7 @@ export default function CartDrawer() {
             </div>
 
             {/* SCROLLABLE CONTENT */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {/* Order Type Selector */}
               <div className="px-6 py-4 bg-palace-smoke/50 border-b border-palace-stone space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -219,6 +228,10 @@ export default function CartDrawer() {
                             )
                           })}
                         </div>
+                      )}
+
+                      {selectedDate && selectedDateSlots.length === 0 && (
+                        <p className="font-body text-[10px] text-red-400/60 italic mt-2">No available times for this date.</p>
                       )}
 
                       {state.scheduledTime && (
@@ -338,7 +351,7 @@ export default function CartDrawer() {
 
             {/* Footer */}
             {state.items.length > 0 && (
-              <div className="flex-shrink-0 px-6 pb-6 pt-4">
+              <div className="flex-shrink-0 px-6 pb-8 pt-4 bg-palace-charcoal border-t border-palace-stone/30">
                 {storeStatus.isOpen && storeStatus.closingTime && (
                   <p className="font-body text-[10px] text-yellow-500/60 text-center mb-2">⏱ {storeStatus.closingTime}</p>
                 )}
@@ -348,10 +361,10 @@ export default function CartDrawer() {
                 <motion.button
                   disabled={(state.isScheduled && !state.scheduledTime)}
                   onClick={() => { closeCart(); router.push('/checkout') }}
-                  className="bg-gold text-palace-black w-full py-4 rounded-none font-body font-semibold text-sm tracking-[0.2em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gold text-palace-black w-full py-4 rounded-none font-body font-semibold text-sm tracking-[0.2em] uppercase flex items-center justify-center gap-3 disabled:opacity-40 disabled:grayscale-[0.5] disabled:cursor-not-allowed shadow-xl"
                   whileHover={(state.isScheduled && !state.scheduledTime) ? {} : { boxShadow: '0 0 30px rgba(201,168,76,0.5)' }}
                   whileTap={(state.isScheduled && !state.scheduledTime) ? {} : { scale: 0.98 }}>
-                  Proceed to Checkout →
+                  {state.isScheduled && !state.scheduledTime ? 'Select a Time to Continue' : 'Proceed to Checkout →'}
                 </motion.button>
               </div>
             )}

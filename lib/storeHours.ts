@@ -19,31 +19,22 @@ export interface StoreStatus {
  */
 export function parseTimeToMinutes(timeStr: string | undefined | null): number {
   if (!timeStr || typeof timeStr !== 'string') return -1
-  const trimmed = timeStr.trim()
+  const trimmed = timeStr.trim().toUpperCase()
   if (!trimmed) return -1
 
-  const lastSpace = trimmed.lastIndexOf(' ')
-  if (lastSpace === -1) return -1
+  // Handle both "11:30 PM" and "11:30PM"
+  const match = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/)
+  if (!match) return -1
 
-  const timePart   = trimmed.substring(0, lastSpace).trim()
-  const periodPart = trimmed.substring(lastSpace + 1).trim().toUpperCase()
+  let hours = parseInt(match[1], 10)
+  const minutes = match[2] ? parseInt(match[2], 10) : 0
+  const period = match[3]
 
-  if (!timePart || !periodPart) return -1
-  if (periodPart !== 'AM' && periodPart !== 'PM') return -1
+  if (hours < 1 || hours > 12) return -1
+  if (minutes < 0 || minutes > 59) return -1
 
-  const colon     = timePart.indexOf(':')
-  const hourStr   = colon !== -1 ? timePart.substring(0, colon) : timePart
-  const minuteStr = colon !== -1 ? timePart.substring(colon + 1) : '0'
-
-  let hours     = parseInt(hourStr, 10)
-  const minutes = parseInt(minuteStr, 10)
-
-  if (isNaN(hours) || isNaN(minutes)) return -1
-  if (hours < 0 || hours > 12)        return -1
-  if (minutes < 0 || minutes > 59)    return -1
-
-  if (periodPart === 'PM' && hours !== 12) hours += 12
-  if (periodPart === 'AM' && hours === 12) hours  = 0
+  if (period === 'PM' && hours !== 12) hours += 12
+  if (period === 'AM' && hours === 12) hours = 0
 
   return hours * 60 + minutes
 }
@@ -62,6 +53,16 @@ export function parseDayRange(daysStr: string | undefined | null): number[] {
     'sunday', 'monday', 'tuesday', 'wednesday',
     'thursday', 'friday', 'saturday',
   ]
+  const dayAbbrevs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+
+  const getDayIndex = (name: string) => {
+    const n = name.trim().toLowerCase()
+    const fullIdx = dayNames.indexOf(n)
+    if (fullIdx !== -1) return fullIdx
+    const abbrevIdx = dayAbbrevs.indexOf(n.substring(0, 3))
+    if (abbrevIdx !== -1) return abbrevIdx
+    return -1
+  }
 
   // Normalise all dash variants (en-dash –, em-dash —, hyphen -) to ASCII hyphen
   const normalised = trimmed
@@ -73,12 +74,18 @@ export function parseDayRange(daysStr: string | undefined | null): number[] {
   if (dashIdx !== -1) {
     const startName = normalised.substring(0, dashIdx).trim()
     const endName   = normalised.substring(dashIdx + 1).trim()
-    const start     = dayNames.indexOf(startName)
-    const end       = dayNames.indexOf(endName)
+    const start     = getDayIndex(startName)
+    const end       = getDayIndex(endName)
 
-    if (start !== -1 && end !== -1 && start <= end) {
+    if (start !== -1 && end !== -1) {
       const result: number[] = []
-      for (let i = start; i <= end; i++) result.push(i)
+      // Handle wrapping ranges like "Friday - Sunday" (5, 6, 0)
+      if (start <= end) {
+        for (let i = start; i <= end; i++) result.push(i)
+      } else {
+        for (let i = start; i <= 6; i++) result.push(i)
+        for (let i = 0; i <= end; i++) result.push(i)
+      }
       return result
     }
   }
@@ -86,7 +93,7 @@ export function parseDayRange(daysStr: string | undefined | null): number[] {
   // List or single: "friday, saturday" or "sunday"
   return normalised
     .split(/[,&]/)
-    .map(s => dayNames.indexOf(s.trim()))
+    .map(s => getDayIndex(s.trim()))
     .filter(i => i !== -1)
 }
 
