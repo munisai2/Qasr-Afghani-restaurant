@@ -32,7 +32,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-
+clear-orders.js
 # vercel
 .vercel
 
