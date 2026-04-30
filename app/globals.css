@@ -89,6 +89,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   0% { background-position: 200% center; }
   100% { background-position: -200% center; }
 }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-8px); }
+  40%       { transform: translateX(8px); }
+  60%       { transform: translateX(-6px); }
+  80%       { transform: translateX(6px); }
+}
+.animate-shake { animation: shake 0.5s ease-in-out; }
 
 /* Hide default cursor ONLY on devices with a real mouse */
 @media (pointer: fine) {

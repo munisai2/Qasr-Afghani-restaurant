@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
       orderType, tableNumber, guestCount,
       items, subtotal, tax, total, specialRequests, placedAt,
       estimatedTime, scheduledTime, promoCode, promoDiscount,
+      includeUtensils,
     } = body
 
     if (!orderId || !customerName) {
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
       tax:      Number(tax),
       total:    Number(total),
       specialRequests: specialRequests ?? '',
+      includeUtensils: includeUtensils ?? false,
       placedAt:  placedAt ?? new Date().toISOString(),
       notes:    '',
     }

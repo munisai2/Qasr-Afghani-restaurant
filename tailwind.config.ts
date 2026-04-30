@@ -22,7 +22,9 @@ const config: Config = {
           charcoal: '#141210',
           smoke:    '#1E1A15',
           stone:    '#2C2720',
+          maroon:   '#5C1A1A',
         },
+        cream: '#FFF9F2',
       },
       fontFamily: {
         display: ['var(--font-display)', 'Georgia', 'serif'],

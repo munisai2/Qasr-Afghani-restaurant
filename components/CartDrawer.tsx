@@ -17,7 +17,7 @@ export default function CartDrawer() {
     state, itemCount, subtotal, tax, total, storeStatus,
     incrementItem, decrementItem, removeItem, closeCart, dispatch,
     setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber,
-    applyPromo, removePromo
+    applyPromo, removePromo, includeUtensils, setUtensils
   } = useCart()
 
   const [info, setInfo] = useState<(RestaurantInfo & { activePromos?: PromoCode[] }) | null>(null)
@@ -300,6 +300,21 @@ export default function CartDrawer() {
             {/* Summary */}
             {state.items.length > 0 && (
               <div className="flex-shrink-0 border-t border-palace-stone px-6 py-5 space-y-2">
+                {/* Utensils Toggle */}
+                <div className="flex items-center justify-between py-3 border-b border-palace-stone/40 mb-2">
+                  <div>
+                    <p className="font-body text-sm text-cream">Include utensils?</p>
+                    <p className="font-body text-[10px] text-cream/30">Napkins, fork, knife, spoon</p>
+                  </div>
+                  <button
+                    onClick={() => setUtensils(!includeUtensils)}
+                    className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${includeUtensils ? 'bg-gold' : 'bg-palace-stone'}`}
+                    aria-label="Toggle utensils"
+                  >
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${includeUtensils ? 'translate-x-7' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
                 {/* Promo Code Toggle */}
                 <div className="mb-4">
                   {(info?.activePromos && info.activePromos.length > 0) && (

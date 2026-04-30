@@ -4,6 +4,8 @@ export default defineType({
   name: 'order',
   title: 'Orders',
   type: 'document',
+  // @ts-ignore
+  __experimental_actions: ['update', 'publish', 'delete'],
   fields: [
     defineField({ name: 'orderId', title: 'Order ID', type: 'string', validation: (r) => r.required() }),
     defineField({
@@ -96,6 +98,20 @@ export default defineType({
     }),
     defineField({ name: 'adjustmentReason',  title: 'Adjustment Reason',           type: 'string' }),
     defineField({ name: 'cancellationReason', title: 'Cancellation Reason',          type: 'string' }),
+    defineField({
+      name:         'includeUtensils',
+      title:        'Include Utensils',
+      type:         'boolean',
+      initialValue: false,
+      description:  'Customer requested napkins, fork, knife, spoon.',
+    }),
+    defineField({
+      name:        'archivedAt',
+      title:       'Archived At',
+      type:        'datetime',
+      description: 'Set automatically for completed orders older than 90 days. Archived orders are hidden from the main view but never deleted.',
+      readOnly:    true,
+    }),
   ],
   preview: {
     select: { title: 'orderId', subtitle: 'customerName', status: 'status' },

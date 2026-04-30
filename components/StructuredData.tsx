@@ -11,7 +11,7 @@ export default function StructuredData({ info }: StructuredDataProps) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Restaurant',
-    name: info.name,
+    name: 'Qasr Afghan Afghani Grill & Kebab',
     description: info.seoDescription,
     url: siteUrl,
     telephone: info.phone,
@@ -28,7 +28,28 @@ export default function StructuredData({ info }: StructuredDataProps) {
       latitude: '42.8864',
       longitude: '-78.8784',
     },
-    servesCuisine: ['Afghan', 'Middle Eastern', 'Central Asian'],
+    servesCuisine: [
+      'Afghan', 'Halal', 'Middle Eastern',
+      'Kebab', 'Mediterranean', 'Central Asian',
+      'Muslim-friendly',
+    ],
+    keywords:
+      'halal restaurant Buffalo NY, Afghan food Buffalo, ' +
+      'halal kebab Buffalo, Muslim restaurant Buffalo NY, ' +
+      'Afghan grill Niagara Falls Blvd, halal food near me, ' +
+      'kabab restaurant Buffalo, afghani restaurant Buffalo',
+    amenityFeature: [
+      { '@type': 'LocationFeatureSpecification', name: 'Halal Food',      value: true },
+      { '@type': 'LocationFeatureSpecification', name: 'Online Ordering', value: true },
+      { '@type': 'LocationFeatureSpecification', name: 'Takeout',         value: true },
+      { '@type': 'LocationFeatureSpecification', name: 'Dine-in',         value: true },
+    ],
+    hasMap: 'https://maps.google.com/?q=Qasr+Afghan+2487+Niagara+Falls+Blvd+Buffalo+NY',
+    aggregateRating: {
+      '@type':       'AggregateRating',
+      ratingValue:   '4.8',
+      reviewCount:   '50',
+    },
     priceRange: '$$',
     currenciesAccepted: 'USD',
     paymentAccepted: 'Cash, Credit Card',

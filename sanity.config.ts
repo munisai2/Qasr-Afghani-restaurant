@@ -19,15 +19,85 @@ export default defineConfig({
         return S.list()
           .title('Content')
           .items([
-            // Orders dashboard — newest first
+            // Orders dashboard — split into Active and Archived
             S.listItem()
               .title('📋 Orders')
+              .schemaType('order')
               .child(
-                S.documentList()
-                  .title('All Orders')
-                  .filter('_type == "order"')
-                  .apiVersion(defaultApiVersion)
-                  .defaultOrdering([{ field: 'placedAt', direction: 'desc' }])
+                S.list()
+                  .title('Orders')
+                  .items([
+                    S.listItem()
+                      .title('🔴 New Orders')
+                      .child(
+                        S.documentList()
+                          .title('New Orders')
+                          .schemaType('order')
+                          .filter('_type == "order" && status == "new"')
+                          .apiVersion(defaultApiVersion)
+                          .defaultOrdering([{ field: 'placedAt', direction: 'desc' }])
+                      ),
+                    S.listItem()
+                      .title('🟡 Active Orders')
+                      .child(
+                        S.documentList()
+                          .title('Active Orders')
+                          .schemaType('order')
+                          .filter('_type == "order" && status in ["preparing","ready","confirmed"]')
+                          .apiVersion(defaultApiVersion)
+                          .defaultOrdering([{ field: 'placedAt', direction: 'desc' }])
+                      ),
+                    S.listItem()
+                      .title('✅ Completed Orders')
+                      .child(
+                        S.documentList()
+                          .title('Completed Orders')
+                          .schemaType('order')
+                          .filter('_type == "order" && status == "completed" && !defined(archivedAt)')
+                          .apiVersion(defaultApiVersion)
+                          .defaultOrdering([{ field: 'placedAt', direction: 'desc' }])
+                      ),
+                    S.listItem()
+                      .title('❌ Cancelled Orders')
+                      .child(
+                        S.documentList()
+                          .title('Cancelled Orders')
+                          .schemaType('order')
+                          .filter('_type == "order" && status == "cancelled"')
+                          .apiVersion(defaultApiVersion)
+                          .defaultOrdering([{ field: 'placedAt', direction: 'desc' }])
+                      ),
+                    S.listItem()
+                      .title('📅 Scheduled Orders')
+                      .child(
+                        S.documentList()
+                          .title('Scheduled Orders')
+                          .schemaType('order')
+                          .filter('_type == "order" && status == "scheduled"')
+                          .apiVersion(defaultApiVersion)
+                          .defaultOrdering([{ field: 'scheduledTime', direction: 'asc' }])
+                      ),
+                    S.listItem()
+                      .title('📦 Archived Orders')
+                      .child(
+                        S.documentList()
+                          .title('Archived Orders')
+                          .schemaType('order')
+                          .filter('_type == "order" && defined(archivedAt)')
+                          .apiVersion(defaultApiVersion)
+                          .defaultOrdering([{ field: 'placedAt', direction: 'desc' }])
+                      ),
+                    S.listItem()
+                      .title('📊 All Orders')
+                      .child(
+                        S.documentList()
+                          .title('All Orders')
+                          .schemaType('order')
+                          .filter('_type == "order"')
+                          .apiVersion(defaultApiVersion)
+                          .defaultOrdering([{ field: 'placedAt', direction: 'desc' }])
+                      ),
+                  ])
               ),
             S.divider(),
             // Restaurant Info singleton
@@ -38,6 +108,15 @@ export default defineConfig({
                   .title('Restaurant Info')
                   .apiVersion(defaultApiVersion)
                   .filter('_type == "restaurantInfo"')
+              ),
+            // Menu Categories (dynamic)
+            S.listItem()
+              .title('📂 Menu Categories')
+              .child(
+                S.documentList()
+                  .title('Menu Categories')
+                  .apiVersion(defaultApiVersion)
+                  .filter('_type == "menuCategory"')
               ),
             // Menu Items
             S.listItem()

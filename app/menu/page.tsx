@@ -1,5 +1,5 @@
 import { Metadata }          from 'next'
-import { fetchMenuByCategory, fetchRestaurantInfo }
+import { fetchMenuByCategory, fetchMenuCategories, fetchRestaurantInfo }
   from '@/lib/fetchData'
 import SiteNav               from '@/components/SiteNav'
 import SiteFooter            from '@/components/SiteFooter'
@@ -37,10 +37,21 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function MenuPage() {
-  const [menuByCategory, info] = await Promise.all([
+  const [menuByCategory, categories, info] = await Promise.all([
     fetchMenuByCategory(),
+    fetchMenuCategories(),
     fetchRestaurantInfo(),
   ])
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://qasrafghan.com'
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: siteUrl },
+      { '@type': 'ListItem', position: 2, name: 'Menu', item: `${siteUrl}/menu` },
+    ],
+  }
 
   return (
     <>
@@ -50,10 +61,12 @@ export default async function MenuPage() {
         reservationUrl={info?.reservationUrl ?? ''}
       />
       <main>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
         <MenuPageHero />
         <RoyalMenuSection
           menuByCategory={menuByCategory}
           restaurantName={info?.name ?? 'Qasr Afghani Grill & Kebab'}
+          categories={categories}
           showFullMenu={true}
         />
       </main>
@@ -65,6 +78,7 @@ export default async function MenuPage() {
         email={info?.email ?? ''}
         instagramUrl={info?.instagramUrl ?? ''}
         reservationUrl={info?.reservationUrl ?? ''}
+        openingHours={info?.openingHours ?? []}
       />
     </>
   )

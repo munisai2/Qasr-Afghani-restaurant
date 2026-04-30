@@ -94,7 +94,7 @@ export default function FeaturedDishesSection({ dishes }: FeaturedDishesSectionP
                 {dish.name}
               </h3>
               <p className="font-body text-xs tracking-widest text-gold-muted mt-2 mb-4 uppercase">
-                {dish.category}
+                {dish.category?.title ?? dish.category?.slug ?? ''}
               </p>
               {dish.description && (
                 <p className="font-body text-sm text-white/50 line-clamp-2 mt-auto">

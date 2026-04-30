@@ -2,13 +2,14 @@ import { client } from '@/sanity.client'
 import {
   restaurantInfoQuery,
   menuItemsQuery,
+  menuCategoriesQuery,
   signatureDishesQuery,
   teamMembersQuery,
   cateringPlansQuery,
   testimonialsQuery,
   activePromoCodesQuery,
 } from './queries'
-import type { RestaurantInfo, MenuItem, TeamMember, CateringPlan, Testimonial, PromoCode } from '@/types/sanity'
+import type { RestaurantInfo, MenuItem, MenuCategory, TeamMember, CateringPlan, Testimonial, PromoCode } from '@/types/sanity'
 import type { CombinedReview } from '@/types/reviews'
 
 export async function fetchActivePromoCodes(): Promise<PromoCode[]> {
@@ -21,20 +22,42 @@ export async function fetchActivePromoCodes(): Promise<PromoCode[]> {
   }
 }
 
-/** Preferred display order for menu categories */
-const CATEGORY_ORDER = [
+/** Preferred display order for menu categories (fallback if Sanity has none) */
+const FALLBACK_CATEGORY_ORDER = [
   'offers', 'lamb', 'chicken', 'family', 'wings', 'gyro', 'appetizers',
 ]
 
-/** Human-readable labels for each menu category */
-export const CATEGORY_LABELS: Record<string, string> = {
-  offers:     'Offers & Deals',
-  lamb:       'Lamb Specials',
-  chicken:    'Chicken Specials',
-  family:     'Family Packages',
-  wings:      'Buffalo Wild Wings',
-  gyro:       'Gyro Specials',
-  appetizers: 'Appetizers & Drinks',
+/**
+ * Build a label map from fetched MenuCategory documents.
+ * Falls back gracefully if categories list is empty.
+ */
+export function buildCategoryLabels(
+  categories: MenuCategory[]
+): Record<string, string> {
+  if (!categories.length) {
+    // Legacy fallback until Studio categories are created
+    return {
+      offers:     'Offers & Deals',
+      lamb:       'Lamb Specials',
+      chicken:    'Chicken Specials',
+      family:     'Family Packages',
+      wings:      'Buffalo Wild Wings',
+      gyro:       'Gyro Specials',
+      appetizers: 'Appetizers & Drinks',
+    }
+  }
+  return Object.fromEntries(categories.map(c => [c.slug, c.title]))
+}
+
+/** Fetch all active menu categories, ordered by display order */
+export async function fetchMenuCategories(): Promise<MenuCategory[]> {
+  try {
+    const data = await client.fetch(menuCategoriesQuery, {}, { next: { revalidate: 60 } })
+    return data ?? []
+  } catch (error) {
+    console.error('[fetchMenuCategories] Failed to fetch:', error)
+    return []
+  }
 }
 
 export async function fetchRestaurantInfo(): Promise<RestaurantInfo | null> {
@@ -98,20 +121,30 @@ export async function fetchTestimonials(): Promise<Testimonial[]> {
 }
 
 export async function fetchMenuByCategory(): Promise<Record<string, MenuItem[]>> {
-  const items = await fetchAllMenuItems()
+  const [items, categories] = await Promise.all([
+    fetchAllMenuItems(),
+    fetchMenuCategories(),
+  ])
+
+  // Build an ordered list of slugs from Sanity categories, or fall back
+  const orderedSlugs: string[] = categories.length
+    ? categories.map(c => c.slug)
+    : FALLBACK_CATEGORY_ORDER
+
   const grouped: Record<string, MenuItem[]> = {}
   for (const item of items) {
-    const cat = item.category || 'uncategorized'
-    if (!grouped[cat]) grouped[cat] = []
-    grouped[cat].push(item)
+    const slug = item.category?.slug ?? 'other'
+    if (!grouped[slug]) grouped[slug] = []
+    grouped[slug].push(item)
   }
+
   const sorted: Record<string, MenuItem[]> = {}
-  CATEGORY_ORDER.forEach(cat => {
-    if (grouped[cat]) sorted[cat] = grouped[cat]
+  orderedSlugs.forEach(slug => {
+    if (grouped[slug]) sorted[slug] = grouped[slug]
   })
-  // Append any unknown categories at end
-  Object.keys(grouped).forEach(cat => {
-    if (!sorted[cat]) sorted[cat] = grouped[cat]
+  // Append any new categories not yet in the order list
+  Object.keys(grouped).forEach(slug => {
+    if (!sorted[slug]) sorted[slug] = grouped[slug]
   })
   return sorted
 }
@@ -197,10 +230,19 @@ export async function fetchCombinedReviews(): Promise<{
     const combined = [
       ...formattedSanity,
       ...googleReviews,
-    ].slice(0, maxReviews)
+    ]
+
+    // Deduplicate by author name
+    const seen = new Set<string>()
+    const deduped = combined.filter(review => {
+      const key = review.author.toLowerCase().trim()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
 
     return {
-      reviews:      combined,
+      reviews:      deduped.slice(0, maxReviews),
       googleRating: cache?.rating ?? null,
       totalCount:   cache?.totalCount ?? null,
     }

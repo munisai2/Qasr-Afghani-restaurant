@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { optimizedImage } from '@/sanity.client'
-import { CATEGORY_LABELS } from '@/lib/fetchData'
 import { useModal } from '@/context/ModalContext'
 import { useCart } from '@/context/CartContext'
 import { AnalyticsEvents } from '@/lib/analytics'
@@ -20,7 +19,7 @@ export default function ItemModal() {
     setQuantity(1)
     setSpecialNote('')
     setJustAdded(false)
-    if (openItem) AnalyticsEvents.viewDish(openItem.name, openItem.category)
+    if (openItem) AnalyticsEvents.viewDish(openItem.name, openItem.category?.slug ?? '')
   }, [openItem?._id])
 
   if (!openItem) return null
@@ -31,7 +30,7 @@ export default function ItemModal() {
       {
         id: item._id,
         name: item.name,
-        category: item.category,
+        category: item.category?.slug ?? '',
         price: item.price,
         prepTime: item.prepTime,
         image: item.image ? optimizedImage(item.image, { width: 128, height: 128 }) : undefined,
@@ -110,8 +109,8 @@ export default function ItemModal() {
               {/* Content */}
               <div className="flex-1 flex flex-col overflow-y-auto">
                 <div className="p-6 md:p-8 flex-1">
-                  <span className="font-body text-[9px] tracking-[0.25em] uppercase text-gold-muted border border-gold/20 px-2 py-0.5">
-                    {CATEGORY_LABELS[item.category] ?? item.category}
+                  <span className="bg-palace-maroon/80 text-cream font-body text-[9px] tracking-[0.2em] uppercase px-2 py-0.5">
+                    {item.category?.title ?? item.category?.slug ?? ''}
                   </span>
 
                   <h2 className={`font-display text-3xl md:text-4xl font-light tracking-wide mt-2 leading-tight ${item.isSignature ? 'text-shimmer' : 'text-white'}`}>

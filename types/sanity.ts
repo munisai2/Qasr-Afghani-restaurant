@@ -54,11 +54,18 @@ export interface PromoCode {
   applicableItemIds?: string[]
 }
 
+export interface MenuCategory {
+  _id:   string
+  title: string
+  slug:  string
+  order: number
+}
+
 export interface MenuItem {
   _id: string
   name: string
   slug: { current: string }
-  category: string
+  category: MenuCategory
   price: number
   prepTime?: number
   description: string

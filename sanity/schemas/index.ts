@@ -1,4 +1,5 @@
 import restaurantInfo from './restaurantInfo'
+import menuCategory from './menuCategory'
 import menuItem from './menuItem'
 import order from './order'
 import teamMember from './teamMember'
@@ -11,6 +12,7 @@ import promoCode from './promoCode'
 
 export const schemaTypes = [
   restaurantInfo,
+  menuCategory,
   menuItem,
   order,
   teamMember,

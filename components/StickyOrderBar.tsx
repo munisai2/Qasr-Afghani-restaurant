@@ -18,13 +18,16 @@ export default function StickyOrderBar({ restaurantName }: StickyOrderBarProps) 
   })
 
   // Only show when scrolled AND cart has items
-  const visible = scrolled && itemCount > 0
+  const shouldShow = scrolled && itemCount > 0
 
   return (
     <motion.div
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
       initial={{ y: 100, opacity: 0 }}
-      animate={visible ? { y: 0, opacity: 1 } : { y: 100, opacity: 0 }}
+      animate={{ 
+        y: shouldShow ? 0 : 100,
+        opacity: shouldShow ? 1 : 0 
+      }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <div className="bg-palace-charcoal/95 backdrop-blur-md border-t border-gold/20 px-4 py-3">

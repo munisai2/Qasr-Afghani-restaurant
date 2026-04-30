@@ -28,7 +28,7 @@ interface CheckoutForm {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { state, itemCount, subtotal, tax, total, storeStatus, openCart, clearCart, setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber } = useCart()
+  const { state, itemCount, subtotal, tax, total, storeStatus, openCart, clearCart, setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber, includeUtensils, setUtensils } = useCart()
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [openingHours, setOpeningHours] = useState<OpeningHours[]>([])
   const [maxPartySize, setMaxPartySize] = useState(20)
@@ -190,6 +190,7 @@ export default function CheckoutPage() {
         promoDiscount: state.promoDiscountAmount,
         estimatedTime: prepTimeResult.minutes,
         scheduledTime: state.scheduledTime ?? null,
+        includeUtensils,
         logoUrl: info?.logo 
           ? optimizedImage(info.logo, { width: 200, height: 200 })
           : undefined
@@ -488,6 +489,22 @@ export default function CheckoutPage() {
             {/* 03 · Special Requests */}
             <div>
               <h2 className="font-display text-lg font-light text-white tracking-wide border-l-2 border-gold pl-4 mb-4">03  ·  Special Requests</h2>
+              
+              <div className="flex items-center justify-between bg-palace-smoke border border-palace-stone p-5 mb-4">
+                <div>
+                  <p className="font-body text-sm text-cream tracking-wide">Include utensils?</p>
+                  <p className="font-body text-[10px] text-cream/30 uppercase tracking-widest mt-1">Napkins, fork, knife, spoon</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUtensils(!includeUtensils)}
+                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${includeUtensils ? 'bg-gold' : 'bg-palace-stone'}`}
+                  aria-label="Toggle utensils"
+                >
+                  <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${includeUtensils ? 'translate-x-7' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
               <textarea {...register('specialRequests')} rows={3} className="form-input resize-none" placeholder="Allergies, special requests for the kitchen..." />
             </div>
 
@@ -548,6 +565,12 @@ export default function CheckoutPage() {
                 <div className="flex justify-between"><span className="font-body text-xs text-white/40">{state.orderType === 'dine-in' || state.orderType === 'reservation' ? 'Service' : 'Pickup'}</span><span className="font-body text-xs text-gold">{state.orderType === 'dine-in' || state.orderType === 'reservation' ? 'AT TABLE' : 'FREE'}</span></div>
                 <div className="border-t border-palace-stone/50 my-2" />
                 <div className="flex justify-between"><span className="font-display text-base text-white">Total</span><span className="font-display text-base text-gold">${total.toFixed(2)}</span></div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-palace-stone/40">
+                <p className="font-body text-xs text-cream/40">
+                  {includeUtensils ? "✓ Utensils included" : "No utensils requested"}
+                </p>
               </div>
 
               {/* Promo Code UI */}

@@ -3,20 +3,22 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { CATEGORY_LABELS } from '@/lib/fetchData'
+import { buildCategoryLabels } from '@/lib/fetchData'
 import MenuItemCard from './MenuItemCard'
-import type { MenuItem } from '@/types/sanity'
+import type { MenuItem, MenuCategory } from '@/types/sanity'
 
 interface RoyalMenuSectionProps {
   menuByCategory: Record<string, MenuItem[]>
   restaurantName: string
+  categories: MenuCategory[]
   showFullMenu?: boolean
 }
 
-export default function RoyalMenuSection({ menuByCategory, restaurantName, showFullMenu = false }: RoyalMenuSectionProps) {
+export default function RoyalMenuSection({ menuByCategory, restaurantName, categories, showFullMenu = false }: RoyalMenuSectionProps) {
+  const labels = buildCategoryLabels(categories)
   const allCategories = Object.keys(menuByCategory)
-  const categories = showFullMenu ? allCategories : allCategories.slice(0, 2)
-  const [activeCategory, setActiveCategory] = useState<string>(categories[0] ?? '')
+  const visibleCategories = showFullMenu ? allCategories : allCategories.slice(0, 2)
+  const [activeCategory, setActiveCategory] = useState<string>(visibleCategories[0] ?? '')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTabIcon, setActiveTabIcon] = useState<string>('')
 
@@ -49,7 +51,8 @@ export default function RoyalMenuSection({ menuByCategory, restaurantName, showF
     return all.filter(item =>
       item.name.toLowerCase().includes(q) ||
       item.description?.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q)
+      item.category?.title?.toLowerCase().includes(q) ||
+      item.category?.slug?.toLowerCase().includes(q)
     )
   }, [menuByCategory, searchQuery])
 
@@ -93,12 +96,12 @@ export default function RoyalMenuSection({ menuByCategory, restaurantName, showF
       </div>
 
       {/* Category tabs — hidden during search */}
-      {!isSearching && categories.length > 0 && (
+      {!isSearching && visibleCategories.length > 0 && (
         <div className="sticky top-[72px] z-30 bg-palace-black/95 backdrop-blur-sm border-b border-palace-stone">
           <div className="flex overflow-x-auto scrollbar-hide gap-0 max-w-7xl mx-auto">
-            {categories.map((cat) => (
-              <button key={cat} onClick={() => handleTabClick(cat)} className={`font-body text-xs tracking-[0.2em] uppercase px-4 md:px-6 py-3 md:py-4 whitespace-nowrap transition-all duration-300 relative overflow-visible ${activeCategory === cat ? 'text-gold' : 'text-white/35 hover:text-white/70'}`} aria-label={`View ${CATEGORY_LABELS[cat] ?? cat}`}>
-                {CATEGORY_LABELS[cat] ?? cat}
+            {visibleCategories.map((cat) => (
+              <button key={cat} onClick={() => handleTabClick(cat)} className={`font-body text-xs tracking-[0.2em] uppercase px-4 md:px-6 py-3 md:py-4 whitespace-nowrap transition-all duration-300 relative overflow-visible ${activeCategory === cat ? 'text-gold' : 'text-white/35 hover:text-white/70'}`} aria-label={`View ${labels[cat] ?? cat}`}>
+                {labels[cat] ?? cat}
                 
                 <AnimatePresence>
                   {activeCategory === cat && activeTabIcon && (

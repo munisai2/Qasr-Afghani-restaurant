@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { motion, useTransform, useMotionValue } from 'framer-motion'
 import Image from 'next/image'
 import { optimizedImage } from '@/sanity.client'
-import { CATEGORY_LABELS } from '@/lib/fetchData'
 import AddToCartButton from './AddToCartButton'
 import KebabBuilder from './KebabBuilder'
 import type { MenuItem } from '@/types/sanity'
@@ -49,7 +48,8 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
   if (isMobile) {
     return (
       <div 
-        className="w-full bg-palace-smoke border border-palace-stone flex flex-col mb-4 overflow-hidden"
+        className="w-full border border-palace-stone flex flex-col mb-4 overflow-hidden"
+        style={{ backgroundColor: '#1E1A15' }}
       >
         <div className="relative aspect-video">
           {item.image ? (
@@ -68,8 +68,8 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
             </div>
           )}
           <div className="absolute top-3 left-3 bg-palace-black/70 backdrop-blur-sm px-2 py-1">
-            <span className="text-gold-muted font-body text-[9px] tracking-widest uppercase">
-              {CATEGORY_LABELS[item.category] ?? item.category}
+            <span className="bg-palace-maroon/80 text-cream font-body text-[9px] tracking-[0.2em] uppercase px-2 py-0.5">
+              {item.category?.title ?? item.category?.slug ?? ''}
             </span>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
                 item={{
                   id: item._id,
                   name: item.name,
-                  category: item.category,
+                  category: item.category?.slug ?? '',
                   price: item.price,
                   prepTime: item.prepTime,
                   image: item.image ? optimizedImage(item.image, { width: 128, height: 128 }) : undefined,
@@ -143,7 +143,7 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
             {item.image ? (
               <>
                 <Image src={optimizedImage(item.image, { width: 600, height: 400 })} alt={item.name} fill sizes="(max-width: 600px) 100vw, 600px" style={{ objectFit: 'cover' }} />
-                <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-palace-smoke to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-[#1E1A15] to-transparent" />
               </>
             ) : (
               <div className="w-full h-full bg-palace-charcoal flex items-center justify-center">
@@ -157,9 +157,9 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
               </div>
             )}
             <div className="absolute top-3 left-3 bg-palace-black/70 backdrop-blur-sm px-2 py-1">
-              <span className="text-gold-muted font-body text-[9px] tracking-widest uppercase">
-                {CATEGORY_LABELS[item.category] ?? item.category}
-              </span>
+                <span className="bg-palace-maroon/80 text-cream font-body text-[9px] tracking-[0.2em] uppercase px-2 py-0.5">
+                  {item.category?.title ?? item.category?.slug ?? ''}
+                </span>
             </div>
           </div>
 
@@ -168,7 +168,8 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
             <h3 className="font-display text-lg font-light text-cream">{item.name}</h3>
             <div className="font-display text-xl text-gold mt-1">${item.price?.toFixed(2)}</div>
             <p className="absolute bottom-3 right-4 font-body text-[9px] text-cream/20 tracking-wide uppercase">
-              Hover to explore
+              <span className="hidden md:block">Hover to explore</span>
+              <span className="block md:hidden">Tap to explore</span>
             </p>
           </div>
         </div>
@@ -248,7 +249,7 @@ export default function MenuItemCard({ item, index }: MenuItemCardProps) {
                 item={{
                   id: item._id,
                   name: item.name,
-                  category: item.category,
+                  category: item.category?.slug ?? '',
                   price: item.price,
                   prepTime: item.prepTime,
                   image: item.image ? optimizedImage(item.image, { width: 128, height: 128 }) : undefined,

@@ -30,31 +30,57 @@ export const activePromoCodesQuery = `
   }
 `
 
-/** Fetches all available menu items, ordered by category */
+/** Fetches all active menu items, ordered by category */
 export const menuItemsQuery = `
-  *[_type == "menuItem" && isAvailable == true] | order(category asc) {
-    _id, name, slug, category, price, prepTime,
+  *[_type == "menuItem" && isAvailable == true] | order(category->order asc, name asc) {
+    _id, name, slug, price, prepTime,
     description, spiceLevel, includes, dietary, image { asset->{ _id, url }, hotspot, crop },
-    isSignature, isAvailable
+    isSignature, isAvailable,
+    category-> {
+      _id,
+      title,
+      "slug": slug.current,
+      order,
+    }
   }
 `
 
 /** Fetches only signature dishes */
 export const signatureDishesQuery = `
-  *[_type == "menuItem" && isSignature == true && isAvailable == true] 
+  *[_type == "menuItem" && isSignature == true && isAvailable == true]
   | order(name asc) [0...6] {
-    _id, name, slug, category, price, prepTime, description, 
-    image { asset->{ _id, url }, hotspot, crop }
+    _id, name, slug, price, prepTime, description,
+    image { asset->{ _id, url }, hotspot, crop },
+    category-> {
+      _id,
+      title,
+      "slug": slug.current,
+      order,
+    }
   }
 `
 
-/** Fetches menu items for a specific category */
-export const menuByCategoryQuery = (category: string) => `
-  *[_type == "menuItem" && category == "${category}" && isAvailable == true]
+/** Fetches menu items for a specific category slug */
+export const menuByCategoryQuery = (slug: string) => `
+  *[_type == "menuItem" && category->slug.current == "${slug}" && isAvailable == true]
   | order(name asc) {
-    _id, name, slug, category, price, prepTime,
+    _id, name, slug, price, prepTime,
     description, spiceLevel, includes, dietary, image { asset->{ _id, url }, hotspot, crop },
-    isSignature, isAvailable
+    isSignature, isAvailable,
+    category-> {
+      _id,
+      title,
+      "slug": slug.current,
+      order,
+    }
+  }
+`
+
+/** Fetches all active menu categories ordered by display order */
+export const menuCategoriesQuery = `
+  *[_type == "menuCategory" && isActive == true]
+  | order(order asc) {
+    _id, title, "slug": slug.current, order
   }
 `
 

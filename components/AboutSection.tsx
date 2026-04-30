@@ -13,16 +13,22 @@ function AnimatedText({ text, className = '' }: { text: string, className?: stri
   return (
     <span className={className}>
       {words.map((word, i) => (
-        <motion.span
-          key={i}
-          className="inline-block mr-[0.25em]"
-          initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          viewport={{ once: true, margin: '-50px' }}
-          transition={{ duration: 0.3, delay: i * 0.04 }}
-        >
-          {word}
-        </motion.span>
+        <React.Fragment key={i}>
+          <motion.span
+            className="inline-block"
+            initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.3, delay: i * 0.04 }}
+          >
+            {word}
+          </motion.span>
+          {i < words.length - 1 && (
+            <span className="inline-block w-[0.25em]">
+              {' '}
+            </span>
+          )}
+        </React.Fragment>
       ))}
     </span>
   )

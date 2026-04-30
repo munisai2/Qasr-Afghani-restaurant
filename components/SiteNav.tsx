@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion'
 import Image from 'next/image'
+import Link from 'next/link'
 import { optimizedImage } from '@/sanity.client'
 import CartNavButton from './CartNavButton'
 import MagneticButton from './MagneticButton'
@@ -85,6 +86,12 @@ export default function SiteNav({ logo, restaurantName, reservationUrl }: SiteNa
               </MagneticButton>
             )}
             <CartNavButton />
+            <Link
+              href="/admin"
+              className="font-body text-[9px] tracking-[0.2em] uppercase text-white/20 hover:text-white/50 transition-colors duration-300 ml-4"
+            >
+              Admin
+            </Link>
           </div>
 
           <div className="md:hidden flex items-center gap-2">
@@ -113,6 +120,13 @@ export default function SiteNav({ logo, restaurantName, reservationUrl }: SiteNa
               </div>
               <div className="px-8 pb-10 space-y-3">
                 {reservationUrl && <a href={reservationUrl} target="_blank" rel="noopener noreferrer" onClick={closeDrawer} className="block w-full text-center border border-gold text-gold font-body text-xs tracking-[0.2em] uppercase py-4 hover:bg-gold hover:text-palace-black transition-all duration-300">Reserve a Table</a>}
+                <Link
+                  href="/admin"
+                  onClick={closeDrawer}
+                  className="font-body text-xs text-white/20 hover:text-white/40 tracking-widest uppercase mt-auto pt-6 border-t border-palace-stone/30 w-full text-center block"
+                >
+                  Admin Login
+                </Link>
               </div>
             </motion.div>
           </>

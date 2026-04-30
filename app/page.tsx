@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { fetchRestaurantInfo, fetchMenuByCategory, fetchTeamMembers, fetchCombinedReviews } from '@/lib/fetchData'
+import { fetchRestaurantInfo, fetchMenuByCategory, fetchMenuCategories, fetchTeamMembers, fetchCombinedReviews } from '@/lib/fetchData'
 import { optimizedImage } from '@/sanity.client'
 import SiteNav from '@/components/SiteNav'
 import HeroSection from '@/components/HeroSection'
@@ -17,7 +17,7 @@ import StatsBar from '@/components/StatsBar'
 // ── Dynamic SEO Metadata from Sanity ──
 export async function generateMetadata(): Promise<Metadata> {
   const info = await fetchRestaurantInfo()
-  const fallbackTitle = 'Qasr Afghan | Palace Dining — Buffalo, NY'
+  const fallbackTitle = 'Qasr Afghan — Afghani Grill & Kebab | Buffalo, NY'
   const fallbackDescription = 'Authentic Afghan cuisine served in an upscale, palace-inspired setting in Buffalo, NY.'
 
   return {
@@ -49,9 +49,10 @@ function StudioNotConfigured() {
 }
 
 export default async function Page() {
-  const [info, menuByCategory, team, reviewData] = await Promise.all([
+  const [info, menuByCategory, categories, team, reviewData] = await Promise.all([
     fetchRestaurantInfo(),
     fetchMenuByCategory(),
+    fetchMenuCategories(),
     fetchTeamMembers(),
     fetchCombinedReviews(),
   ])
@@ -77,6 +78,7 @@ export default async function Page() {
         <RoyalMenuSection
           menuByCategory={menuByCategory}
           restaurantName={info.name}
+          categories={categories}
         />
 
         <SizzleDivider intensity="medium" />

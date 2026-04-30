@@ -25,11 +25,12 @@ interface CartState {
   isOpen:              boolean
   orderType:           'pickup' | 'pickup-scheduled' | 'dine-in' | 'reservation'
   isScheduled:         boolean
-  scheduledTime:       string | null   // ISO datetime string or null
+  scheduledTime:       string | null
   guestCount:          number
   tableNumber:         string
   appliedPromoCode:    string | null
   promoDiscountAmount: number
+  includeUtensils:     boolean
 }
 
 type CartAction =
@@ -49,6 +50,7 @@ type CartAction =
   | { type: 'SET_TABLE_NUMBER';    payload: string }
   | { type: 'APPLY_PROMO';         payload: { code: string; discount: number } }
   | { type: 'REMOVE_PROMO' }
+  | { type: 'SET_UTENSILS';        payload: boolean }
   | { type: 'HYDRATE'; payload: Partial<CartState> }
 
 // ═══════════════════════════════════════
@@ -64,7 +66,8 @@ const initialState: CartState = {
   guestCount: 1,
   tableNumber: '',
   appliedPromoCode: null,
-  promoDiscountAmount: 0
+  promoDiscountAmount: 0,
+  includeUtensils: false,
 }
 
 function cartReducer(state: CartState, action: CartAction): CartState {
@@ -115,6 +118,8 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, appliedPromoCode: action.payload.code, promoDiscountAmount: action.payload.discount }
     case 'REMOVE_PROMO':
       return { ...state, appliedPromoCode: null, promoDiscountAmount: 0 }
+    case 'SET_UTENSILS':
+      return { ...state, includeUtensils: action.payload }
     case 'HYDRATE':
       return { 
         ...state, 
@@ -150,6 +155,7 @@ interface CartContextValue {
   tableNumber: string
   appliedPromoCode: string | null
   promoDiscountAmount: number
+  includeUtensils: boolean
   setOrderType: (type: CartState['orderType']) => void
   setIsScheduled: (val: boolean) => void
   setScheduledTime: (time: string | null) => void
@@ -157,6 +163,7 @@ interface CartContextValue {
   setTableNumber: (num: string) => void
   applyPromo: (code: string, discount: number) => void
   removePromo: () => void
+  setUtensils: (val: boolean) => void
   clearCart: () => void
   openCart: () => void
   closeCart: () => void
@@ -246,6 +253,7 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
   const setTableNumber = useCallback((num: string) => dispatch({ type: 'SET_TABLE_NUMBER', payload: num }), [])
   const applyPromo = useCallback((code: string, discount: number) => dispatch({ type: 'APPLY_PROMO', payload: { code, discount } }), [])
   const removePromo = useCallback(() => dispatch({ type: 'REMOVE_PROMO' }), [])
+  const setUtensils = useCallback((val: boolean) => dispatch({ type: 'SET_UTENSILS', payload: val }), [])
   const clearCart = useCallback(() => dispatch({ type: 'CLEAR_CART' }), [])
   const openCart = useCallback(() => dispatch({ type: 'OPEN_CART' }), [])
   const closeCart = useCallback(() => dispatch({ type: 'CLOSE_CART' }), [])
@@ -258,13 +266,14 @@ export function CartProvider({ children, openingHours }: CartProviderProps) {
     scheduledTime: state.scheduledTime, guestCount: state.guestCount,
     tableNumber: state.tableNumber, appliedPromoCode: state.appliedPromoCode,
     promoDiscountAmount: state.promoDiscountAmount,
+    includeUtensils: state.includeUtensils,
     addItem, addItemWithQty, removeItem, incrementItem, decrementItem,
     setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber,
-    applyPromo, removePromo, clearCart, openCart, closeCart, isInCart, getItemQuantity,
+    applyPromo, removePromo, setUtensils, clearCart, openCart, closeCart, isInCart, getItemQuantity,
   }), [state, itemCount, subtotal, tax, total, storeStatus,
     addItem, addItemWithQty, removeItem, incrementItem, decrementItem,
     setOrderType, setIsScheduled, setScheduledTime, setGuestCount, setTableNumber,
-    applyPromo, removePromo, clearCart, openCart, closeCart, isInCart, getItemQuantity])
+    applyPromo, removePromo, setUtensils, clearCart, openCart, closeCart, isInCart, getItemQuantity])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

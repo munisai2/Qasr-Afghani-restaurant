@@ -1,15 +1,5 @@
 import { defineField, defineType } from 'sanity'
 
-const CATEGORY_LABELS: Record<string, string> = {
-  lamb:       'Lamb Specials',
-  chicken:    'Chicken Specials',
-  family:     'Family Packages',
-  wings:      'Buffalo Wild Wings',
-  gyro:       'Gyro Specials',
-  appetizers: 'Appetizers & Drinks',
-  offers:     'Offers & Deals',
-}
-
 export default defineType({
   name: 'menuItem',
   title: 'Menu Item',
@@ -31,20 +21,12 @@ export default defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'category',
-      title: 'Category',
-      type: 'string',
-      options: {
-        list: [
-          { title: 'Offers & Deals',      value: 'offers'     },
-          { title: 'Lamb Specials',       value: 'lamb'       },
-          { title: 'Chicken Specials',    value: 'chicken'    },
-          { title: 'Family Packages',     value: 'family'     },
-          { title: 'Buffalo Wild Wings',  value: 'wings'      },
-          { title: 'Gyro Specials',       value: 'gyro'       },
-          { title: 'Appetizers & Drinks', value: 'appetizers' },
-        ],
-      },
+      name:        'category',
+      title:       'Category',
+      type:        'reference',
+      to:          [{ type: 'menuCategory' }],
+      description: 'Select the category. Add new categories in → Menu Categories.',
+      validation:  Rule => Rule.required(),
     }),
     defineField({
       name: 'price',
@@ -126,14 +108,14 @@ export default defineType({
   preview: {
     select: {
       title:    'name',
-      category: 'category',
+      category: 'category.title',
       price:    'price',
       prepTime: 'prepTime',
     },
-    prepare({ title, category, price, prepTime }) {
+    prepare({ title, category, price, prepTime }: { title: string; category?: string; price?: number; prepTime?: number }) {
       return {
         title,
-        subtitle: `${CATEGORY_LABELS[category] || category} · $${price} · ${prepTime ?? 20} min`,
+        subtitle: `${category ?? 'No category'} · $${price ?? 0} · ${prepTime ?? 20} min`,
       }
     },
   },
