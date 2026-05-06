@@ -159,7 +159,45 @@ export function getStoreStatus(
   }
 
   const currentDay     = now.getDay()
+  const previousDay    = (currentDay + 6) % 7
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+  // ── Check if we are still in yesterday's shift (crossing midnight) ──
+  const yesterdayEntry = openingHours.find(entry => {
+    if (!entry || entry.isClosed || !entry.days || !entry.hours) return false
+    return parseDayRange(entry.days).includes(previousDay)
+  })
+
+  if (yesterdayEntry) {
+    const hoursParts = yesterdayEntry.hours.split(/\s*[-–—]\s*/)
+    const openStr    = hoursParts[0]?.trim()
+    const closeStr   = hoursParts[1]?.trim()
+    const openMinutes  = parseTimeToMinutes(openStr)
+    const closeMinutes = parseTimeToMinutes(closeStr)
+
+    if (openMinutes !== -1 && closeMinutes !== -1 && closeMinutes < openMinutes) {
+      // Shift crosses midnight
+      if (currentMinutes < closeMinutes) {
+        // We are in the early morning part of yesterday's shift!
+        const minutesUntilClose = closeMinutes - currentMinutes
+        const hoursLeft         = Math.floor(minutesUntilClose / 60)
+
+        let closingTime = `Closes at ${closeStr}`
+        if (minutesUntilClose <= 30) {
+          closingTime = `Closing in ${minutesUntilClose} minute${minutesUntilClose !== 1 ? 's' : ''}`
+        } else if (hoursLeft < 1) {
+          closingTime = `Closing in ${minutesUntilClose} minutes`
+        }
+
+        return {
+          isOpen: true,
+          message: 'Order Online',
+          closingTime,
+          todayHours: yesterdayEntry.hours,
+        }
+      }
+    }
+  }
 
   // ── Find today's open entry ──
   const todayEntry = openingHours.find(entry => {
@@ -214,8 +252,10 @@ export function getStoreStatus(
     }
   }
 
-  // ── After closing time ──
-  if (currentMinutes >= closeMinutes) {
+  const crossesMidnight = closeMinutes < openMinutes
+
+  // ── After closing time (only if it doesn't cross midnight) ──
+  if (!crossesMidnight && currentMinutes >= closeMinutes) {
     return {
       isOpen: false,
       message: 'Closed for the night',
@@ -225,8 +265,14 @@ export function getStoreStatus(
   }
 
   // ── Currently open — calculate time remaining ──
-  const minutesUntilClose = closeMinutes - currentMinutes
-  const hoursLeft         = Math.floor(minutesUntilClose / 60)
+  let minutesUntilClose
+  if (crossesMidnight) {
+    minutesUntilClose = (1440 - currentMinutes) + closeMinutes
+  } else {
+    minutesUntilClose = closeMinutes - currentMinutes
+  }
+  
+  const hoursLeft = Math.floor(minutesUntilClose / 60)
 
   let closingTime = `Closes at ${closeStr}`
   if (minutesUntilClose <= 30) {
