@@ -136,4 +136,5 @@ export interface Order {
   estimatedTime?: number
   promoCode?: string
   promoDiscount?: number
+  kitchenMessage?: string
 }

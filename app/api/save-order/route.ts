@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       includeUtensils: includeUtensils ?? false,
       placedAt:  placedAt ?? new Date().toISOString(),
       notes:    '',
+      kitchenMessage: body.kitchenMessage ?? '',
     }
 
     await writeClient.createOrReplace(doc)

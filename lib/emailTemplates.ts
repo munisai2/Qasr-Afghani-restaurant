@@ -374,12 +374,34 @@ export function generateAdjustmentHTML(data: {
     </div>` : ''
 
   const restaurantMessageHTML = data.kitchenMessage ? `
-    <div style="border: 1px solid rgba(201,168,76,0.2); background: rgba(201,168,76,0.02); padding: 16px; margin-top: 24px; text-align: left;">
-      <p style="color: #C9A84C; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; font-family: Arial, sans-serif; margin: 0 0 8px 0;">MESSAGE FROM RESTAURANT</p>
-      <p style="color: #E2DDD5; font-size: 14px; line-height: 1.5; font-family: Georgia, serif; margin: 0; font-style: italic;">
-        "${data.kitchenMessage}"
-      </p>
-    </div>` : ''
+    <!-- Kitchen Message Box -->
+    <table width="100%" style="margin: 16px 0;">
+      <tr>
+        <td style="
+          background: #1A1208;
+          border-left: 3px solid #C9A84C;
+          padding: 12px 16px;
+        ">
+          <p style="
+            color: rgba(201,168,76,0.7);
+            font-size: 9px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            font-family: Arial, sans-serif;
+            margin: 0 0 6px 0;
+          ">MESSAGE FROM OUR KITCHEN</p>
+          <p style="
+            color: rgba(240,230,200,0.8);
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            font-style: italic;
+            margin: 0;
+            line-height: 1.5;
+          ">"${data.kitchenMessage}"</p>
+        </td>
+      </tr>
+    </table>
+  ` : ''
 
   return `<!DOCTYPE html><html><body style="background:#0A0805;padding:40px;font-family:Arial,sans-serif;color:white;text-align:center;margin:0;">
     <div style="max-width:500px;margin:0 auto;border:1px solid #2C2720;padding:40px;background:#141210;">

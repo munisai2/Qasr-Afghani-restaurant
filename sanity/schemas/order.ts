@@ -72,6 +72,17 @@ export default defineType({
       description: 'Internal notes — not visible to customer',
     }),
     defineField({
+      name:  'kitchenMessage',
+      title: 'Kitchen Message to Customer',
+      type:  'text',
+      rows:  2,
+      description:
+        'A message from the kitchen to the customer. ' +
+        'This is sent to the customer in their email ' +
+        'when the order is adjusted or confirmed. ' +
+        'Example: "No apple juice available — replaced with water."',
+    }),
+    defineField({
       name:  'scheduledTime',
       title: 'Scheduled Pickup Time',
       type:  'datetime',
