@@ -81,6 +81,14 @@ export default defineType({
       initialValue: 8,
       validation:   Rule => Rule.min(1).max(10),
     }),
+    defineField({
+      name:         'useCustomAlarm',
+      title:        'Use Custom Alarm Sound',
+      type:         'boolean',
+      initialValue: false,
+      description:  'Set by the Kitchen App when a custom alarm is uploaded.',
+      readOnly:     true,
+    }),
   ],
 
   preview: {
