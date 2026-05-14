@@ -55,17 +55,6 @@ export interface OwnerCateringData {
 
 export function generateReceiptHTML(data: ReceiptEmailData): string {
   const isDineIn = data.orderType === 'dine-in'
-  const currentSubtotal = data.subtotal || 0
-  const totalDelta = data.discountAmount !== undefined ? -data.discountAmount : 0
-  const originalSubtotal = Math.max(0, currentSubtotal - totalDelta)
-  
-  // Use the promo discount as-is since the kitchen app already calculated the final amount
-  const dynamicPromo = data.promoDiscount || 0
-  
-  // New Logic: Tax on (Subtotal - Promo)
-  const discountedSubtotal = Math.max(0, currentSubtotal - dynamicPromo)
-  const finalTax = parseFloat((discountedSubtotal * 0.08).toFixed(2))
-  const finalTotal = parseFloat((discountedSubtotal + finalTax).toFixed(2))
 
   const itemsHTML = (data.items || []).map(item => `
     <tr style="border-bottom: 1px solid #2C2720;">
@@ -74,33 +63,33 @@ export function generateReceiptHTML(data: ReceiptEmailData): string {
     </tr>
   `).join('')
 
-  const adjustmentRowHTML = totalDelta !== 0 ? `
+  const adjustmentRowHTML = (data.discountAmount !== undefined && data.discountAmount !== 0) ? `
     <tr>
-      <td style="padding: 8px 0; color: ${totalDelta < 0 ? '#4ADE80' : '#F97316'}; font-size: 14px; font-family: Arial, sans-serif;">Kitchen Adjustment</td>
-      <td style="padding: 8px 0; text-align: right; color: ${totalDelta < 0 ? '#4ADE80' : '#F97316'}; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">(${totalDelta < 0 ? '−' : '+'}$${Math.abs(totalDelta).toFixed(2)})</td>
+      <td style="padding: 8px 0; color: ${data.discountAmount > 0 ? '#4ADE80' : '#F97316'}; font-size: 14px; font-family: Arial, sans-serif;">Kitchen Adjustment</td>
+      <td style="padding: 8px 0; text-align: right; color: ${data.discountAmount > 0 ? '#4ADE80' : '#F97316'}; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">(${data.discountAmount > 0 ? '−' : '+'}$${Math.abs(data.discountAmount).toFixed(2)})</td>
     </tr>` : ''
 
-  const promoRowHTML = dynamicPromo > 0 ? `
+  const promoRowHTML = (data.promoDiscount && data.promoDiscount > 0) ? `
     <tr>
       <td style="padding: 8px 0; color: #4ADE80; font-size: 14px; font-family: Arial, sans-serif;">Promo (${data.promoCode || 'Applied'})</td>
-      <td style="padding: 8px 0; text-align: right; color: #4ADE80; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">−$${dynamicPromo.toFixed(2)}</td>
+      <td style="padding: 8px 0; text-align: right; color: #4ADE80; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;">−$${data.promoDiscount.toFixed(2)}</td>
     </tr>` : ''
 
   const totalsHTML = `
     <table width="100%" style="margin-top: 10px;">
       <tr>
-        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Original Subtotal</td>
-        <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${originalSubtotal.toFixed(2)}</td>
+        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Subtotal</td>
+        <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${data.subtotal.toFixed(2)}</td>
       </tr>
-      ${adjustmentRowHTML}
       ${promoRowHTML}
+      ${adjustmentRowHTML}
       <tr>
-        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Tax (8% of $${discountedSubtotal.toFixed(2)})</td>
-        <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${finalTax.toFixed(2)}</td>
+        <td style="padding: 8px 0; color: rgba(255,255,255,0.5); font-size: 14px; font-family: Arial, sans-serif;">Tax (8% of $${data.subtotal.toFixed(2)})</td>
+        <td style="padding: 8px 0; text-align: right; color: rgba(255,255,255,0.8); font-size: 14px; font-family: Arial, sans-serif;">$${data.tax.toFixed(2)}</td>
       </tr>
       <tr>
-        <td style="padding: 20px 0 0 0; color: white; font-weight: bold; font-size: 18px; font-family: Georgia, serif; letter-spacing: 0.05em;">FINAL TOTAL</td>
-        <td style="padding: 20px 0 0 0; text-align: right; color: #C9A84C; font-weight: bold; font-size: 24px; font-family: Georgia, serif;">$${finalTotal.toFixed(2)}</td>
+        <td style="padding: 20px 0 0 0; color: rgba(255,255,255,0.4); font-size: 12px; font-family: Georgia, serif; letter-spacing: 0.1em; vertical-align: bottom;">FINAL TOTAL</td>
+        <td style="padding: 20px 0 0 0; text-align: right; color: #C9A84C; font-weight: bold; font-size: 24px; font-family: Georgia, serif;">$${data.total.toFixed(2)}</td>
       </tr>
     </table>`
 
